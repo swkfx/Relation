@@ -1,8 +1,6 @@
 package com.jiatui.relation;
 
-import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.Rect;
 
 /**
  * <pre>
