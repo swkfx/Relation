@@ -119,6 +119,13 @@ public class RelationView extends View {
         }
     }
 
+    /**
+     * 根据 点击的X,Y 判断是否有点击到child 并且 返回 子View 所在的区域
+     *
+     * @param x 在当前View中的x
+     * @param y 在当前View中的y
+     * @return 返回 子View 所在的区域 如果没有点击到 则返回null
+     */
     public Rect getChildRect(int x, int y) {
         Rect rect = new Rect();
         for (Region region : childRegions) {
@@ -129,6 +136,21 @@ public class RelationView extends View {
             }
         }
         return null;
+    }
+
+    public double getChildAngle(int x, int y) {
+        int w = x - getMeasuredWidth() / 2;
+        int h = y - getMeasuredHeight() / 2;
+        double angle = Math.toDegrees(Math.atan2(h, w));
+        // 修正角度 返回  0-360 之间的角度
+        if (angle != 0) {
+            angle = angle % 360 == 0 ? 360 : angle % 360;
+            if (angle < 0) {
+                angle = angle + 360;
+            }
+        }
+        Timber.d("childAngle:%s", angle);
+        return angle;
     }
 
     // @Override

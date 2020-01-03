@@ -40,10 +40,12 @@ public class RelationLayout extends ViewGroup {
     private float offsetX;
     private float offsetY;
 
-    private List<Region> regions;
+    private List<Region> regions = new ArrayList<>();
     private List<RelationView> expandNodes = new ArrayList<>();
 
     private int[] EXPAND_ANGLES = new int[8];
+    private int[] EXPAND_ANGLES_UP = new int[4];
+    private int[] EXPAND_ANGLES_DOWN = new int[4];
     private RelationView root;
 
     public RelationLayout(Context context) {
@@ -70,7 +72,6 @@ public class RelationLayout extends ViewGroup {
         changeScaleMin(context, mScaleGestureDetector);
         mScroller = new OverScroller(context);
         detector = new GestureDetectorCompat(context, new MyGestureListener());
-        regions = new ArrayList<>();
 
         addRoot();
     }
@@ -79,14 +80,24 @@ public class RelationLayout extends ViewGroup {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         int angle = (int) Math.toDegrees(Math.atan2(h, w));
-        EXPAND_ANGLES[0] = angle;
-        EXPAND_ANGLES[1] = 90;
-        EXPAND_ANGLES[2] = 180 - angle;
-        EXPAND_ANGLES[3] = 180;
-        EXPAND_ANGLES[4] = 180 + angle;
-        EXPAND_ANGLES[5] = 270;
-        EXPAND_ANGLES[6] = 360 - angle;
-        EXPAND_ANGLES[7] = 360;
+        EXPAND_ANGLES[0] = angle; //右下
+        EXPAND_ANGLES[1] = 90; //下
+        EXPAND_ANGLES[2] = 180 - angle; //左下
+        EXPAND_ANGLES[3] = 180; // 左
+        EXPAND_ANGLES[4] = 180 + angle;//左上
+        EXPAND_ANGLES[5] = 270; // 上
+        EXPAND_ANGLES[6] = 360 - angle; //右上
+        EXPAND_ANGLES[7] = 360; // 右
+
+        EXPAND_ANGLES_UP[0] = 270; // 上
+        EXPAND_ANGLES_UP[1] = 180 + angle;//左上
+        EXPAND_ANGLES_UP[2] = 360 - angle; //右上
+        EXPAND_ANGLES_UP[3] = 180; // 左
+
+        EXPAND_ANGLES_DOWN[0] = 90; //下
+        EXPAND_ANGLES_DOWN[1] = angle; //右下
+        EXPAND_ANGLES_DOWN[2] = 180 - angle; //左下
+        EXPAND_ANGLES_DOWN[3] = 360; // 右
 
         if (root != null) {
             root.setParentPoint(new Point(w / 2, h / 2));
@@ -139,30 +150,37 @@ public class RelationLayout extends ViewGroup {
      * @param centerY 中心点y
      * @return 周围下一个可布局的 位置的中心点
      */
-    private Point findNextLayoutPoint(int centerX, int centerY) {
-        float w = getMeasuredWidth() / 2f;
-        float h = getMeasuredHeight() / 2f;
+    private Point findNextLayoutPoint(int centerX, int centerY, int[] findAngles) {
+        float w = getMeasuredWidth();
+        float h = getMeasuredHeight();
         double l = Math.hypot(w, h);//通过两条直角边算斜边长度
-        for (int angle : EXPAND_ANGLES) {
-            int lineLength;
-            if (angle % 180 == 0) { //水平
-                lineLength = (int) w;
-            } else if (angle % 90 == 0) {
-                lineLength = (int) h;
-            } else {
-                lineLength = (int) l;
-            }
-            Point point = RelationUtils.calcPointWithAngle(centerX, centerY, lineLength * 2, angle);
-            boolean notUsed = true;
-            for (Region region : regions) {
-                if (region.contains(point.x, point.y)) {
-                    notUsed = false;
-                    break;
+        boolean search = true;
+        int count = 1;
+        while (search) {
+            for (int angle : findAngles) {
+                int lineLength;
+                if (angle % 180 == 0) { //水平
+                    lineLength = (int) w;
+                } else if (angle % 90 == 0) {
+                    lineLength = (int) h;
+                } else {
+                    lineLength = (int) l;
+                }
+                Point point = RelationUtils.calcPointWithAngle(centerX, centerY, lineLength * count, angle);
+                boolean used = false;
+                for (Region region : regions) {
+                    if (region.contains(point.x, point.y)) {
+                        used = true;
+                        break;
+                    }
+                }
+                if (!used) {
+                    return point;
                 }
             }
-            if (notUsed) {
-                return point;
-            }
+            count++;
+            //先设置查找20圈。防止死循环
+            search = count < 20;
         }
         return null;
     }
@@ -220,7 +238,9 @@ public class RelationLayout extends ViewGroup {
             Rect bounds = upNode.getParentRegion().getBounds();
             int wR = upNode.getMeasuredWidth() / 2;
             int hR = upNode.getMeasuredHeight() / 2;
-            Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY());
+            double childAngle = upNode.getChildAngle(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
+            int[] findAngles = childAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+            Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
             if (point != null) {
                 RelationView nextNode = new RelationView(getContext());
                 nextNode.setExpandPoint(new Point(clickPt[0], clickPt[1]));
@@ -389,7 +409,7 @@ public class RelationLayout extends ViewGroup {
             mScale = Math.max(MIN_SCALE, mScale);
             mScale = Math.min(MAX_SCALE, mScale);
             if (mScale > MIN_SCALE && mScale < MAX_SCALE) {
-                matrix.postScale(detector.getScaleFactor(), detector.getScaleFactor());
+                matrix.postScale(detector.getScaleFactor(), detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
                 invalidate();
                 Timber.d("onScale...focusX=%f, focusY=%f, scaleFactor=%f ,mScale=%s",
                         detector.getFocusX(), detector.getFocusY(), scaleFactor, mScale);
