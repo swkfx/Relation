@@ -270,49 +270,23 @@ public class RelationLayout extends ViewGroup {
                 int distanceY = endY - startY;
                 if(pointZ == null ||pointZ.originX == 0) {
                     pointZ = new PointZ();
-//                    if(Math.abs(endX - startX) >= 10) {
-//                        pointZ.originX = startX + 10;
-//                        pointZ.originY = startY + 10 * Math.abs(endY - startY) / Math.abs(endX - startX);
-//                    } else {
-//                        pointZ.originX = startX + 10 * Math.abs(endX - startX) / Math.abs(endY - startY);
-//                        pointZ.originY = startY + 10;
-//                    }
                     pointZ.originX = startX + distanceX / DRAW_COUNT;
                     pointZ.originY = startY + distanceY / DRAW_COUNT;
                     map.put(node.getViewId() + "", pointZ);
                 }
                 if(pointZ.count < DRAW_COUNT) {
                     canvas.drawLine(startX, startY, pointZ.originX, pointZ.originY, mPaint);
-//                    if(Math.abs(endX - startX) >= 10) {
-//                        pointZ.originX += 10;
-//                        pointZ.originY += 10 * Math.abs(endY - startY) / Math.abs(endX - startX);
-//                    } else {
-//                        pointZ.originX += 10 * Math.abs(endX - startX) / Math.abs(endY - startY);
-//                        pointZ.originY += 10;
-//                    }
                     pointZ.count ++;
                     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
                     map.put(node.getViewId() + "", pointZ);
                     invalidate();
                     if(pointZ.count == DRAW_COUNT) {
-                        matrix.postTranslate(-distanceX, -distanceY);
-//                        int[] position = new int[2];
-//                        node.getLocationInWindow(position);
-////                        System.out.println("getLocationInWindow:" + position[0] + "," + position[1]);
-//                        DisplayMetrics metrics = new DisplayMetrics();
-//                        ((Activity)getContext()).getWindowManager().getDefaultDisplay().getMetrics(metrics);
-//                        int x = metrics.widthPixels / 2;
-//                        int y = metrics.heightPixels / 2;
-//                        matrix.postTranslate(x-position[0], y - position[1]);
+                        // TODO: 2020-01-03
+//                        matrix.postTranslate(-distanceX, -distanceY);
                     }
                 } else {
-//                    pointZ.originY = endY;
-//                    pointZ.originX = endX;
-//                    map.put(node.getViewId() + "", pointZ);
                     canvas.drawLine(startX, startY, pointZ.originX,  pointZ.originY, mPaint);
-//                    originX = 0;
-//                    originY = 0;
                 }
             }
         }
