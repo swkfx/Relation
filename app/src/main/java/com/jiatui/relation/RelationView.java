@@ -44,6 +44,8 @@ public class RelationView extends View {
     private float offsetX;
     private float offsetY;
 
+    private int viewId;
+
     private List<Region> childRegions;
 
     private Region parentRegion;
@@ -64,6 +66,14 @@ public class RelationView extends View {
 
         Timber.plant(new Timber.DebugTree());
         init(context);
+    }
+
+    public int getViewId() {
+        return viewId;
+    }
+
+    public void setViewId(int viewId) {
+        this.viewId = viewId;
     }
 
     /**

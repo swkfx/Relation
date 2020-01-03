@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.PaintFlagsDrawFilter;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.Region;
@@ -21,7 +22,9 @@ import android.widget.OverScroller;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import timber.log.Timber;
 
@@ -47,6 +50,7 @@ public class RelationLayout extends ViewGroup {
     private int[] EXPAND_ANGLES_UP = new int[4];
     private int[] EXPAND_ANGLES_DOWN = new int[4];
     private RelationView root;
+    private Map<String, PointZ> map = new HashMap<>();
 
     public RelationLayout(Context context) {
         this(context, null);
@@ -226,6 +230,9 @@ public class RelationLayout extends ViewGroup {
         }
     }
 
+    private int id = 10000009;
+    private final static int DRAW_COUNT = 30;
+
     /**
      * 添加一个下级节点
      *
@@ -242,7 +249,8 @@ public class RelationLayout extends ViewGroup {
             int[] findAngles = childAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
             Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
             if (point != null) {
-                RelationView nextNode = new RelationView(getContext());
+                final RelationView nextNode = new RelationView(getContext());
+                nextNode.setViewId(id ++);
                 nextNode.setExpandPoint(new Point(clickPt[0], clickPt[1]));
                 nextNode.setParentPoint(point);
                 Region parentRegion = new Region();
@@ -255,10 +263,17 @@ public class RelationLayout extends ViewGroup {
         }
     }
 
+    private class PointZ {
+        int originX;
+        int originY;
+        int count;
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.setMatrix(matrix);
         canvas.drawColor(Color.BLACK);
+        canvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG));
         // drawDebugLine(canvas);
         super.onDraw(canvas);
         if (expandNodes != null && !expandNodes.isEmpty()) {
@@ -266,7 +281,33 @@ public class RelationLayout extends ViewGroup {
                 // 展开子节点
                 Point expandPoint = node.getExpandPoint();
                 Point parentPoint = node.getParentPoint();
-                canvas.drawLine(expandPoint.x, expandPoint.y, parentPoint.x, parentPoint.y, mPaint);
+                int startX = expandPoint.x;
+                int startY = expandPoint.y;
+                int endX = parentPoint.x;
+                int endY = parentPoint.y;
+                PointZ pointZ = map.get(node.getViewId() + "");
+                int distanceX = endX - startX;
+                int distanceY = endY - startY;
+                if(pointZ == null ||pointZ.originX == 0) {
+                    pointZ = new PointZ();
+                    pointZ.originX = startX + distanceX / DRAW_COUNT;
+                    pointZ.originY = startY + distanceY / DRAW_COUNT;
+                    map.put(node.getViewId() + "", pointZ);
+                }
+                if(pointZ.count < DRAW_COUNT) {
+                    canvas.drawLine(startX, startY, pointZ.originX, pointZ.originY, mPaint);
+                    pointZ.count ++;
+                    pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
+                    pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
+                    map.put(node.getViewId() + "", pointZ);
+                    invalidate();
+                    if(pointZ.count == DRAW_COUNT) {
+                        // TODO: 2020-01-03
+//                        matrix.postTranslate(-distanceX, -distanceY);
+                    }
+                } else {
+                    canvas.drawLine(startX, startY, pointZ.originX,  pointZ.originY, mPaint);
+                }
             }
         }
 
