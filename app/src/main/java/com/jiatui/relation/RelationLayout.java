@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.Region;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
@@ -40,8 +41,10 @@ public class RelationLayout extends ViewGroup {
     private float offsetY;
 
     private List<Region> regions;
+    private List<RelationView> expandNodes = new ArrayList<>();
 
-    private int[] ANGLES = new int[8];
+    private int[] EXPAND_ANGLES = new int[8];
+    private RelationView root;
 
     public RelationLayout(Context context) {
         this(context, null);
@@ -69,29 +72,26 @@ public class RelationLayout extends ViewGroup {
         detector = new GestureDetectorCompat(context, new MyGestureListener());
         regions = new ArrayList<>();
 
-        for (int i = 0; i < 3; i++) {
-            addNext();
-        }
+        addRoot();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-
-
-        double l = Math.hypot(w, h);//通过两条直角边算斜边长度
-        // double angle1 = Math.toRadians(Math.atan2(h, w));
         int angle = (int) Math.toDegrees(Math.atan2(h, w));
-        ANGLES[0] = angle;
-        ANGLES[1] = 90;
-        ANGLES[2] = 180 - angle;
-        ANGLES[3] = 180;
-        ANGLES[4] = 180 + angle;
-        ANGLES[5] = 270;
-        ANGLES[6] = 360 - angle;
-        ANGLES[7] = 360;
+        EXPAND_ANGLES[0] = angle;
+        EXPAND_ANGLES[1] = 90;
+        EXPAND_ANGLES[2] = 180 - angle;
+        EXPAND_ANGLES[3] = 180;
+        EXPAND_ANGLES[4] = 180 + angle;
+        EXPAND_ANGLES[5] = 270;
+        EXPAND_ANGLES[6] = 360 - angle;
+        EXPAND_ANGLES[7] = 360;
 
-
+        if (root != null) {
+            root.setParentPoint(new Point(w / 2, h / 2));
+            root.setParentRegion(new Region(0, 0, w, h));
+        }
     }
 
     private void changeScaleMin(Context context, ScaleGestureDetector detector) {
@@ -119,27 +119,31 @@ public class RelationLayout extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
-            if (i == 0) {
+            if (child == root) {
                 child.layout(l, t, r, b);
                 if (regions.get(i) != null) {
                     regions.get(i).set(l, t, r, b);
+                    root.setParentRegion(regions.get(i));
                 }
             } else {
-                int[] nl = findNextLayout();
-                child.layout(nl[0], nl[1], nl[2], nl[3]);
-                if (regions.get(i) != null) {
-                    regions.get(i).set(nl[0], nl[1], nl[2], nl[3]);
-                }
+                Rect bounds = ((RelationView) child).getParentRegion().getBounds();
+                child.layout(bounds.left, bounds.top, bounds.right, bounds.bottom);
             }
         }
     }
 
-    private int[] findNextLayout() {
-        int[] pos = new int[4];
+    /**
+     * 以参数为中心点寻找周围下一个可布局的中心点
+     *
+     * @param centerX 中心点x
+     * @param centerY 中心点y
+     * @return 周围下一个可布局的 位置的中心点
+     */
+    private Point findNextLayoutPoint(int centerX, int centerY) {
         float w = getMeasuredWidth() / 2f;
         float h = getMeasuredHeight() / 2f;
         double l = Math.hypot(w, h);//通过两条直角边算斜边长度
-        for (int angle : ANGLES) {
+        for (int angle : EXPAND_ANGLES) {
             int lineLength;
             if (angle % 180 == 0) { //水平
                 lineLength = (int) w;
@@ -148,7 +152,7 @@ public class RelationLayout extends ViewGroup {
             } else {
                 lineLength = (int) l;
             }
-            Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, lineLength * 2, angle);
+            Point point = RelationUtils.calcPointWithAngle(centerX, centerY, lineLength * 2, angle);
             boolean notUsed = true;
             for (Region region : regions) {
                 if (region.contains(point.x, point.y)) {
@@ -157,31 +161,106 @@ public class RelationLayout extends ViewGroup {
                 }
             }
             if (notUsed) {
-                pos[0] = (int) (point.x - w);
-                pos[1] = (int) (point.y - h);
-                pos[2] = (int) (point.x + w);
-                pos[3] = (int) (point.y + h);
-                return pos;
+                return point;
             }
         }
-        return pos;
+        return null;
     }
 
-    private void addNext() {
+    // private int[] findNextLayout() {
+    //     int[] pos = new int[4];
+    //     float w = getMeasuredWidth() / 2f;
+    //     float h = getMeasuredHeight() / 2f;
+    //     double l = Math.hypot(w, h);//通过两条直角边算斜边长度
+    //     for (int angle : EXPAND_ANGLES) {
+    //         int lineLength;
+    //         if (angle % 180 == 0) { //水平
+    //             lineLength = (int) w;
+    //         } else if (angle % 90 == 0) { //垂直
+    //             lineLength = (int) h;
+    //         } else { //其他情况
+    //             lineLength = (int) l;
+    //         }
+    //         Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, lineLength * 2, angle);
+    //         boolean notUsed = true;
+    //         for (Region region : regions) {
+    //             if (region.contains(point.x, point.y)) {
+    //                 notUsed = false;
+    //                 break;
+    //             }
+    //         }
+    //         if (notUsed) {
+    //             pos[0] = (int) (point.x - w);
+    //             pos[1] = (int) (point.y - h);
+    //             pos[2] = (int) (point.x + w);
+    //             pos[3] = (int) (point.y + h);
+    //             return pos;
+    //         }
+    //     }
+    //     return pos;
+    // }
+
+    private void addRoot() {
         if (getContext() != null) {
-            addView(new RelationView(getContext()));
+            root = new RelationView(getContext());
+            addView(root);
             regions.add(new Region());
+        }
+    }
+
+    /**
+     * 添加一个下级节点
+     *
+     * @param upNode  上级节点 ，
+     * @param clickPt 点击坐标 ，
+     */
+    private void addNext(RelationView upNode, int[] clickPt) {
+        Rect nodeChildRect = upNode.getChildRect(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
+        if (nodeChildRect != null && !nodeChildRect.isEmpty()) {
+            Rect bounds = upNode.getParentRegion().getBounds();
+            int wR = upNode.getMeasuredWidth() / 2;
+            int hR = upNode.getMeasuredHeight() / 2;
+            Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY());
+            if (point != null) {
+                RelationView nextNode = new RelationView(getContext());
+                nextNode.setExpandPoint(new Point(clickPt[0], clickPt[1]));
+                nextNode.setParentPoint(point);
+                Region parentRegion = new Region();
+                parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+                nextNode.setParentRegion(parentRegion);
+                addView(nextNode);
+                expandNodes.add(nextNode);
+                regions.add(parentRegion);
+            }
         }
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.setMatrix(matrix);
-        super.onDraw(canvas);
         canvas.drawColor(Color.BLACK);
+        // drawDebugLine(canvas);
+        super.onDraw(canvas);
+        if (expandNodes != null && !expandNodes.isEmpty()) {
+            for (RelationView node : expandNodes) {
+                // 展开子节点
+                Point expandPoint = node.getExpandPoint();
+                Point parentPoint = node.getParentPoint();
+                canvas.drawLine(expandPoint.x, expandPoint.y, parentPoint.x, parentPoint.y, mPaint);
+            }
+        }
+
+
+    }
+
+    private void drawDebugLine(Canvas canvas) {
+        if (!BuildConfig.DEBUG) {
+            return;
+        }
         int childCount = getChildCount();
-        canvas.drawLine(0, 0, getMeasuredWidth(), 0, mPaint);
-        canvas.drawLine(0, 0, 0, getMeasuredHeight(), mPaint);
+        //画框框
+        canvas.drawLine(0, 0, getMeasuredWidth() * childCount, 0, mPaint);
+        canvas.drawLine(0, 0, 0, getMeasuredHeight() * childCount, mPaint);
         for (int i = 0; i < childCount; i++) {
             View child = getChildAt(0);
             int height = child.getMeasuredHeight();
@@ -190,34 +269,31 @@ public class RelationLayout extends ViewGroup {
             canvas.drawLine(0, height * (i + 1), getMeasuredWidth() * childCount, height * (i + 1), mPaint);
             // drawY
             canvas.drawLine(width * (i + 1), 0, width * (i + 1), getMeasuredHeight() * childCount, mPaint);
-            // Timber.d("onDraw.w:%s,h:%s", getMeasuredWidth(), height);
         }
-        for (int angle : ANGLES) {
-            int w = getMeasuredWidth();
-            int h = getMeasuredHeight();
-            int l = (int) Math.sqrt(w * w + h * h);
-
-            int lineLength;
-            if (angle % 180 == 0) { //水平
-                lineLength = w;
-            } else if (angle % 90 == 0) {
-                lineLength = h;
-            } else {
-                lineLength = l;
-            }
-            Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, lineLength, angle);
-            canvas.drawLine(w / 2, h / 2, point.x, point.y, mPaint);
-        }
-        // drawLine(canvas, getMeasuredHeight(), getMeasuredWidth());
-
-
-        // Timber.d("onDraw...");
+        // //画角度延伸线
+        // for (int angle : EXPAND_ANGLES) {
+        //     int w = getMeasuredWidth();
+        //     int h = getMeasuredHeight();
+        //     int l = (int) Math.sqrt(w * w + h * h);
+        //
+        //     int lineLength;
+        //     if (angle % 180 == 0) { //水平
+        //         lineLength = w;
+        //     } else if (angle % 90 == 0) {
+        //         lineLength = h;
+        //     } else {
+        //         lineLength = l;
+        //     }
+        //     Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, lineLength, angle);
+        //     canvas.drawLine(w / 2, h / 2, point.x, point.y, mPaint);
+        // }
     }
 
+
     private void drawLine(Canvas canvas, int w, int h) {
-        double angle1 = Math.toDegrees(Math.atan2(w, h));
+        double angle = Math.toDegrees(Math.atan2(w, h));
         double lineLength = Math.hypot(w, h);//通过两条直角边算斜边长度
-        Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, (int) lineLength, 180 - angle1);
+        Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, (int) lineLength, angle);
         canvas.drawLine(getMeasuredWidth() / 2, getMeasuredHeight() / 2, point.x, point.y, mPaint);
     }
 
@@ -245,20 +321,13 @@ public class RelationLayout extends ViewGroup {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            float[] downPoint = new float[]{e.getX(), e.getY()};
-            float[] invertPoint = new float[2];//逆变换后的点击点数组
-            Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
-            matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
-            invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
-            Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
-            for (int i = 0; i < regions.size(); i++) {
-                Region region = regions.get(i);
-                if (region.contains(((int) invertPoint[0]), ((int) invertPoint[1]))) {
-                    Timber.d("onSingleTapUp[%s]", i);
-                    break;
-                }
+            int[] point = invertPoint(e);
+            int childIndex = getClickChildIndex(point[0], point[1]);
+            if (childIndex > -1) {
+                RelationView upNode = (RelationView) getChildAt(childIndex);
+                addNext(upNode, point);
+                return true;
             }
-
             return false;
         }
 
@@ -282,6 +351,29 @@ public class RelationLayout extends ViewGroup {
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             return false;
         }
+    }
+
+    private int getClickChildIndex(int x, int y) {
+        int index = -1;
+        for (int i = 0; i < regions.size(); i++) {
+            Region region = regions.get(i);
+            if (region.contains(x, y)) {
+                Timber.d("onSingleTapUp[%s]", i);
+                index = i;
+                break;
+            }
+        }
+        return index;
+    }
+
+    private int[] invertPoint(MotionEvent e) {
+        float[] downPoint = new float[]{e.getX(), e.getY()};
+        float[] invertPoint = new float[2];//逆变换后的点击点数组
+        Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
+        matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
+        invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
+        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
+        return new int[]{((int) invertPoint[0]), ((int) invertPoint[1])};
     }
 
 

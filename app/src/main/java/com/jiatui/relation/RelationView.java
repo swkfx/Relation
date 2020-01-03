@@ -6,19 +6,16 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.Region;
-import android.graphics.RegionIterator;
 import android.support.v4.view.GestureDetectorCompat;
 import android.text.TextPaint;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
-import android.view.VelocityTracker;
 import android.view.View;
 import android.widget.OverScroller;
-import android.widget.Scroller;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,8 +44,12 @@ public class RelationView extends View {
     private float offsetX;
     private float offsetY;
 
-    private List<Region> regions;
+    private List<Region> childRegions;
 
+    private Region parentRegion;
+
+    private Point expandPoint;//在父容器的连线起点
+    private Point parentPoint;//在父容器的layout 的中心店
 
     public RelationView(Context context) {
         this(context, null);
@@ -87,9 +88,9 @@ public class RelationView extends View {
         //         new MySimpleOnScaleGestureListener());
         mScroller = new OverScroller(context);
         detector = new GestureDetectorCompat(context, new MyGestureListener());
-        regions = new ArrayList<>();
+        childRegions = new ArrayList<>();
         for (int i = 0; i < lineCount + 1; i++) {
-            regions.add(new Region());
+            childRegions.add(new Region());
         }
     }
 
@@ -101,8 +102,8 @@ public class RelationView extends View {
         centerPoint.x = cx;
         centerPoint.y = cy;
         canvas.drawCircle(cx, cy, radius, mPaint);
-        if (regions.get(0) != null) {
-            regions.get(0).set(cx - radius, cy - radius, cx + radius, cy + radius);
+        if (childRegions.get(0) != null) {
+            childRegions.get(0).set(cx - radius, cy - radius, cx + radius, cy + radius);
         }
         for (int i = 1; i <= lineCount; i++) {
             double angle = 360 / lineCount;
@@ -111,13 +112,23 @@ public class RelationView extends View {
             int smallRadius = this.radius / 2;
             canvas.drawCircle(point.x, point.y, smallRadius, mPaint);
             canvas.drawText(String.valueOf(i), point.x, point.y, mTextPaint);
-            if (regions.get(i) != null) {
-                regions.get(i).set(point.x - smallRadius, point.y - smallRadius,
+            if (childRegions.get(i) != null) {
+                childRegions.get(i).set(point.x - smallRadius, point.y - smallRadius,
                         point.x + smallRadius, point.y + smallRadius);
             }
         }
+    }
 
-
+    public Rect getChildRect(int x, int y) {
+        Rect rect = new Rect();
+        for (Region region : childRegions) {
+            if (region.contains(x, y)) {
+                Timber.d("onClick:%s", childRegions.indexOf(region));
+                rect.set(region.getBounds());
+                return rect;
+            }
+        }
+        return null;
     }
 
     // @Override
@@ -177,9 +188,9 @@ public class RelationView extends View {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             Timber.d("onSingleTapConfirmed:x=%s,y=%s", e.getX(), e.getY());
-            for (Region region : regions) {
+            for (Region region : childRegions) {
                 if (region.contains(((int) e.getX()), ((int) e.getY()))) {
-                    Timber.d("onClick:%s", regions.indexOf(region));
+                    Timber.d("onClick:%s", childRegions.indexOf(region));
                     break;
                 }
             }
@@ -257,5 +268,29 @@ public class RelationView extends View {
             // matrix.setScale(mScale, mScale);
             return true;
         }
+    }
+
+    public void setParentRegion(Region parentRegion) {
+        this.parentRegion = parentRegion;
+    }
+
+    public Region getParentRegion() {
+        return parentRegion;
+    }
+
+    public Point getExpandPoint() {
+        return expandPoint;
+    }
+
+    public void setExpandPoint(Point expandPoint) {
+        this.expandPoint = expandPoint;
+    }
+
+    public Point getParentPoint() {
+        return parentPoint;
+    }
+
+    public void setParentPoint(Point parentPoint) {
+        this.parentPoint = parentPoint;
     }
 }
