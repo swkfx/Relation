@@ -52,6 +52,7 @@ public class RelationView extends View {
 
     private Point expandPoint;//在父容器的连线起点
     private Point parentPoint;//在父容器的layout 的中心店
+    private Point originPoint;//原始点
 
     public RelationView(Context context) {
         this(context, null);
@@ -163,59 +164,6 @@ public class RelationView extends View {
         return angle;
     }
 
-    // @Override
-    //     // public boolean dispatchTouchEvent(MotionEvent event) {
-    //     //     boolean result = mScaleGestureDetector.onTouchEvent(event);
-    //     //     if (!mScaleGestureDetector.isInProgress()) {
-    //     //         result = detector.onTouchEvent(event);
-    //     //     }
-    //     //     return result;
-    //     //     // return super.dispatchTouchEvent(event);
-    //     // }
-
-    // @Override
-    // public boolean onTouchEvent(MotionEvent event) {
-    //     boolean result = mScaleGestureDetector.onTouchEvent(event);
-    //     if (!mScaleGestureDetector.isInProgress()) {
-    //         result = detector.onTouchEvent(event);
-    //     }
-    //     return result;
-    // }
-
-
-    // @Override
-    // public boolean onTouchEvent(MotionEvent event) {
-    //     final int actionIndex = event.getActionIndex();
-    //     int pointerId = event.getPointerId(actionIndex);
-    //     final int actionMasked = event.getActionMasked();
-    //     final int action = event.getAction();
-    //     final int pointerCount = event.getPointerCount();
-    //     Timber.d("onTouchEvent: actionIndex=%d, pointerId=%d, actionMasked=%d, action=%d, pointerCount=%d",
-    //             actionIndex, pointerId, actionMasked, action, pointerCount);
-    //     if (mVelocityTracker == null) {
-    //         mVelocityTracker = VelocityTracker.obtain();
-    //     }
-    //     mVelocityTracker.addMovement(event);
-    //     switch (actionMasked) {
-    //         case MotionEvent.ACTION_DOWN:
-    //             mLastX = (int) event.getX();
-    //             mLastY = (int) event.getY();
-    //             break;
-    //         case MotionEvent.ACTION_MOVE:
-    //             int dx = (int) (event.getX() - mLastX);
-    //             int dy = (int) (event.getY() - mLastY);
-    //             matrix.setTranslate(dx, dy);
-    //             invalidate();
-    //             break;
-    //         case MotionEvent.ACTION_UP:
-    //         case MotionEvent.ACTION_CANCEL:
-    //             break;
-    //
-    //     }
-    //     return mScaleGestureDetector.onTouchEvent(event) && super.onTouchEvent(event);
-    // }
-
-
     private class MyGestureListener implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -279,29 +227,6 @@ public class RelationView extends View {
         return (int) (getResources().getDisplayMetrics().density * dp + .5f);
     }
 
-    private class MySimpleOnScaleGestureListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            float scaleFactor = detector.getScaleFactor();
-            mScale = initialScale * detector.getScaleFactor();
-            // setScaleX(mScale);
-            // setScaleY(mScale);
-            // matrix.setScale(mScale, mScale);
-            // invalidate();
-            Timber.d("onScale...focusX=%f, focusY=%f, scaleFactor=%f ,mScale=%s",
-                    detector.getFocusX(), detector.getFocusY(), scaleFactor, mScale);
-            return super.onScale(detector);
-
-        }
-
-        @Override
-        public boolean onScaleBegin(ScaleGestureDetector detector) {
-            initialScale = mScale;
-            // matrix.setScale(mScale, mScale);
-            return true;
-        }
-    }
-
     public void setParentRegion(Region parentRegion) {
         this.parentRegion = parentRegion;
     }
@@ -324,5 +249,13 @@ public class RelationView extends View {
 
     public void setParentPoint(Point parentPoint) {
         this.parentPoint = parentPoint;
+    }
+
+    public void setOriginPoint(Point originPoint) {
+        this.originPoint = originPoint;
+    }
+
+    public Point getOriginPoint() {
+        return originPoint;
     }
 }

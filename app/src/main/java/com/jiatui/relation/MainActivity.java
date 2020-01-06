@@ -26,32 +26,32 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Timber.plant(new Timber.DebugTree());
         setContentView(R.layout.activity_main);
-        ClueNode node = findViewById(R.id.clue_node);
-        NodeInfo info = new NodeInfo();
-        info.url = "http://ww1.sinaimg.cn/large/0065oQSqly1g2pquqlp0nj30n00yiq8u.jpg";
-        info.text = "刘志文";
-        info.childes = new ArrayList<>();
-        for (int i = 0; i < 6; i++) {
-            NodeInfo child = new NodeInfo();
-            child.text = titles[i];
-            Random random = new Random();
-            int secondChildCount = random.nextInt(5) + 1;
-            Timber.d("secondChildCount=%s", secondChildCount);
-            child.childes = new ArrayList<>();
-            for (int j = 0; j < secondChildCount; j++) {
-                NodeInfo secondChild = new NodeInfo();
-                if (j >= urls.length) {
-                    secondChild.url = "https://acg.toubiec.cn/random";
-                } else {
-                    secondChild.url = urls[j];
-                }
-
-                secondChild.text = "刘志文";
-                child.childes.add(secondChild);
-            }
-            info.childes.add(child);
-        }
-        node.setNodeInfo(info);
+//        ClueNode node = findViewById(R.id.clue_node);
+//        NodeInfo info = new NodeInfo();
+//        info.url = "http://ww1.sinaimg.cn/large/0065oQSqly1g2pquqlp0nj30n00yiq8u.jpg";
+//        info.text = "刘志文";
+//        info.childes = new ArrayList<>();
+//        for (int i = 0; i < 6; i++) {
+//            NodeInfo child = new NodeInfo();
+//            child.text = titles[i];
+//            Random random = new Random();
+//            int secondChildCount = random.nextInt(5) + 1;
+//            Timber.d("secondChildCount=%s", secondChildCount);
+//            child.childes = new ArrayList<>();
+//            for (int j = 0; j < secondChildCount; j++) {
+//                NodeInfo secondChild = new NodeInfo();
+//                if (j >= urls.length) {
+//                    secondChild.url = "https://acg.toubiec.cn/random";
+//                } else {
+//                    secondChild.url = urls[j];
+//                }
+//
+//                secondChild.text = "刘志文";
+//                child.childes.add(secondChild);
+//            }
+//            info.childes.add(child);
+//        }
+//        node.setNodeInfo(info);
 
     }
 }
