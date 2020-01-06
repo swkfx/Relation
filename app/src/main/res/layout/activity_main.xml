@@ -17,7 +17,7 @@
 <!--        app:layout_constraintTop_toTopOf="parent" />-->
 
 
-    <com.jiatui.relation.ClueNode
+    <com.jiatui.relation.UsersNode
         android:id="@+id/clue_node"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>

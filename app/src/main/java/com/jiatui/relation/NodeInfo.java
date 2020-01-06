@@ -11,8 +11,9 @@ import java.util.List;
  * </pre>
  */
 public class NodeInfo {
-    public int type;
-    public String url;
-    public String text;
+    public String sourceType;
+    public String userId;
+    public String picUrl;
+    public String name;
     public List<NodeInfo> childes;
 }
