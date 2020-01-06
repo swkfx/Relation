@@ -17,7 +17,7 @@ import java.util.Random;
  * </pre>
  */
 public class RelationUtils {
-    private static List<Integer> defaultColors = new ArrayList<>(7);
+    private static List<Integer> defaultColors = new ArrayList<>();
     private static List<Integer> colors;
 
     static {
@@ -48,9 +48,20 @@ public class RelationUtils {
         return (int) (context.getResources().getDisplayMetrics().density * dp + .5f);
     }
 
-    public static int generateChildColor() {
+    public static int dp2px(Context context, float dp) {
+        return (int) (context.getResources().getDisplayMetrics().density * dp + .5f);
+    }
+
+    /**
+     * @param reset 是否重置颜色列表
+     * @return
+     */
+    public static int generateChildColor(boolean reset) {
         if (colors == null) {
             colors = new ArrayList<>();
+        }
+        if (reset) {
+            colors.clear();
         }
         if (colors.isEmpty()) {
             colors.addAll(defaultColors);
@@ -60,9 +71,16 @@ public class RelationUtils {
         return colors.remove(nextIndex);
     }
 
+    public static int generateChildColor() {
+        return generateChildColor(false);
+    }
+
     public static int changeColorAlpha(int color, float percent) {
         int alpha = (int) (Color.alpha(color) * percent);
         return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
     }
 
+    public static int getOtherNodeColor() {
+        return Color.parseColor("#8D949B");
+    }
 }

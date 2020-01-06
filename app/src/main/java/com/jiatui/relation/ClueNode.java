@@ -27,6 +27,8 @@ import com.bumptech.glide.request.transition.Transition;
 import java.util.HashMap;
 import java.util.Map;
 
+import timber.log.Timber;
+
 /**
  * <pre>
  *      author : fangx
@@ -47,6 +49,7 @@ public class ClueNode extends View {
     private int textSize_10 = 10;//dp
     private int rootSpace = 2;//dp
     private int lineDistance = 130;//dp
+    private int longLineDistance = 230;//dp
     private int subLineDistance = 48;//dp
     private Paint bitmapPaint;
     private TextPaint textPaint;
@@ -56,6 +59,8 @@ public class ClueNode extends View {
     private Rect childTextRect;
     private Path linePath;
     private Map<String, Bitmap> cacheBitmapMap;
+
+    private boolean hasOtherNode;//是否有其他node
 
 
     public ClueNode(Context context) {
@@ -94,6 +99,11 @@ public class ClueNode extends View {
         this.info = info;
         loadRootBitmap(info.url);
         loadNodeChildBitmap(info);
+        invalidate();
+    }
+
+    public void setHasOtherNode(boolean has) {
+        this.hasOtherNode = has;
         invalidate();
     }
 
@@ -181,16 +191,24 @@ public class ClueNode extends View {
     }
 
     private void drawChildes(Canvas canvas) {
+        int x = getWidth() / 2;
+        int y = getHeight() / 2;
         if (info.childes != null && !info.childes.isEmpty()) {
-            int x = getWidth() / 2;
-            int y = getHeight() / 2;
-            for (int i = 0; i < info.childes.size(); i++) {
+            int size = Math.min(8, info.childes.size());
+            for (int i = 0; i < size; i++) {
                 NodeInfo child = info.childes.get(i);
                 //绘制连接线
                 int count = Math.min(6, info.childes.size());
                 float offsetAngle = 360f / count / 2;//设计稿起始偏移角度
-                float angle = 360f / count * i + offsetAngle;
-                int radius = RelationUtils.dp2px(getContext(), lineDistance);
+                float angle;
+                if (i > 5) {
+                    //这里特殊处理。 如果超过 6 个child 第7个 角度在 第4个之后+偏移角度，第8个在第5个之后+偏移角度 最多只能有八个
+                    int position = i == 6 ? 3 : 4;
+                    angle = 360f / count * position + offsetAngle + offsetAngle;
+                } else {
+                    angle = 360f / count * i + offsetAngle;
+                }
+                int radius = RelationUtils.dp2px(getContext(), i > 5 ? longLineDistance : lineDistance);
                 Point point = RelationUtils.calcPointWithAngle(x, y, radius, angle);
                 linePath.reset();
                 linePath.moveTo(x, y);
@@ -199,18 +217,44 @@ public class ClueNode extends View {
                 //绘制 node的 child
                 //childLineAngle
                 float childAngle = angle + 180 % 360;
-                drawNodeChild(canvas, point, child, childAngle);
+                int color = RelationUtils.generateChildColor(i == 0);
+                drawNodeChild(canvas, point, child, childAngle, color);
             }
+        }
+
+        //绘制「其他」节点
+        if (hasOtherNode) {
+            float angle = 60f;
+            int radius = RelationUtils.dp2px(getContext(), longLineDistance);
+            Point point = RelationUtils.calcPointWithAngle(x, y, radius, angle);
+            linePath.reset();
+            linePath.moveTo(x, y);
+            linePath.lineTo(point.x, point.y);
+            canvas.drawPath(linePath, linePaint);
+
+            int color = RelationUtils.getOtherNodeColor();
+            int size = RelationUtils.dp2px(getContext(), nodeChildSize);
+            float r = size / 2f;
+            bitmapPaint.reset();
+            bitmapPaint.setColor(color);
+            bitmapPaint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(point.x, point.y, r, bitmapPaint);
+
+            textPaint.setTextSize(RelationUtils.dp2px(getContext(), normalTextSize));
+            String text = "其他";
+            textPaint.getTextBounds(text, 0, text.length(), childTextRect);
+            float textX = point.x - childTextRect.exactCenterX();
+            float textY = point.y - childTextRect.exactCenterY();
+            canvas.drawText(text, textX, textY, textPaint);
         }
     }
 
-    private void drawNodeChild(Canvas canvas, Point point, NodeInfo child, float offsetAngle) {
+    private void drawNodeChild(Canvas canvas, Point point, NodeInfo child, float offsetAngle, int color) {
         //绘制子节点的子节点
-        drawNodeChildNode(canvas, point, child, offsetAngle);
+        drawNodeChildNode(canvas, point, child, offsetAngle, color);
 
         bitmapPaint.reset();
         boolean hasBorder = child.childes != null && child.childes.size() > 5;
-        int color = RelationUtils.generateChildColor();
         int size = RelationUtils.dp2px(getContext(), nodeChildSize);
         float radius = size / 2;
         if (hasBorder) {
@@ -255,7 +299,7 @@ public class ClueNode extends View {
      * @param point
      * @param child
      */
-    private void drawNodeChildNode(Canvas canvas, Point point, NodeInfo child, float offsetAngle) {
+    private void drawNodeChildNode(Canvas canvas, Point point, NodeInfo child, float offsetAngle, int color) {
         if (child != null && child.childes != null && !child.childes.isEmpty()) {
             int count = Math.min(5, child.childes.size());
             for (int i = 0; i < child.childes.size(); i++) {
@@ -272,11 +316,22 @@ public class ClueNode extends View {
                     linePath.moveTo(point.x, point.y);
                     linePath.lineTo(endPoint.x, endPoint.y);
                     canvas.drawPath(linePath, linePaint);
-                    //绘制头像
+
+                    //绘制头像的边框
+                    bitmapPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+                    int strokeWidth = RelationUtils.dp2px(getContext(), 1.5f);
+                    bitmapPaint.setStrokeWidth(strokeWidth);
+                    bitmapPaint.setColor(RelationUtils.changeColorAlpha(color, 0.5f));
+                    int r = nodeBitmap.getWidth() / 2;
+                    canvas.drawCircle(endPoint.x, endPoint.y, r , bitmapPaint);
+                    // 绘制头像
                     float left = endPoint.x - nodeBitmap.getWidth() / 2;
                     float top = endPoint.y - nodeBitmap.getHeight() / 2;
+                    bitmapPaint.reset();
                     canvas.drawBitmap(nodeBitmap, left, top, bitmapPaint);
-                    // TODO: 2020/1/5 绘制头像的边框
+                    // //绘制头像蒙层
+                    bitmapPaint.setColor(Color.parseColor("#4D000000"));
+                    canvas.drawCircle(endPoint.x, endPoint.y, r, bitmapPaint);
                     //绘制名字
                     if (!TextUtils.isEmpty(info.text)) {
                         textPaint.setTextSize(RelationUtils.dp2px(getContext(), textSize_10));
