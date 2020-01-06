@@ -9,7 +9,8 @@ import java.util.Random;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
-    String[] titles = {"文章", "海报", "宣传册", "名片分享", "名片扫码", "文件", "商品", "视频"};
+    String[] titles = {"文章", "海报", "宣传册", "名片分享", "名片扫码", "文件", "商品",
+            "视频", "文章", "海报", "宣传册", "名片分享", "名片扫码", "文件", "商品", "视频"};
     String[] urls = {
             "https://acg.toubiec.cn/random",
             "http://tva2.sinaimg.cn/large/a15b4afegy1fmvjhu7kbgj21hc0u0qns.jpg",
@@ -25,18 +26,23 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Timber.plant(new Timber.DebugTree());
         setContentView(R.layout.activity_main);
-        ClueNode node = findViewById(R.id.clue_node);
+        UsersNode node = findViewById(R.id.clue_node);
         NodeInfo info = new NodeInfo();
-        info.url = "http://ww1.sinaimg.cn/large/0065oQSqly1g2pquqlp0nj30n00yiq8u.jpg";
-        info.text = "刘志文";
+        info.name = titles[0];
         info.childes = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 15; i++) {
             NodeInfo child = new NodeInfo();
             if (i < titles.length) {
-                child.text = titles[i];
+                child.name = titles[i];
             } else {
-                child.text = "超出的";
+                child.name = "超出的";
             }
+            if (i >= urls.length) {
+                child.picUrl = "https://acg.toubiec.cn/random";
+            } else {
+                child.picUrl = urls[i];
+            }
+
             Random random = new Random();
             int secondChildCount = random.nextInt(5) + 1;
             Timber.d("secondChildCount=%s", secondChildCount);
@@ -44,18 +50,18 @@ public class MainActivity extends AppCompatActivity {
             for (int j = 0; j < secondChildCount; j++) {
                 NodeInfo secondChild = new NodeInfo();
                 if (j >= urls.length) {
-                    secondChild.url = "https://acg.toubiec.cn/random";
+                    secondChild.picUrl = "https://acg.toubiec.cn/random";
                 } else {
-                    secondChild.url = urls[j];
+                    secondChild.picUrl = urls[j];
                 }
 
-                secondChild.text = "刘志文";
+                secondChild.name = "刘志文";
                 child.childes.add(secondChild);
             }
             info.childes.add(child);
         }
-        node.setNodeInfo(info);
-        node.setHasOtherNode(true);
+        node.setNodeInfo(info, RelationUtils.generateChildColor(true), 66);
+        // node.setHasOtherNode(true);
 
     }
 }

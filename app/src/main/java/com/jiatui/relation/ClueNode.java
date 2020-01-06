@@ -27,8 +27,6 @@ import com.bumptech.glide.request.transition.Transition;
 import java.util.HashMap;
 import java.util.Map;
 
-import timber.log.Timber;
-
 /**
  * <pre>
  *      author : fangx
@@ -97,7 +95,7 @@ public class ClueNode extends View {
 
     public void setNodeInfo(NodeInfo info) {
         this.info = info;
-        loadRootBitmap(info.url);
+        loadRootBitmap(info.picUrl);
         loadNodeChildBitmap(info);
         invalidate();
     }
@@ -112,10 +110,10 @@ public class ClueNode extends View {
             for (NodeInfo child : info.childes) {
                 if (child != null && child.childes != null && !child.childes.isEmpty()) {
                     for (NodeInfo nodeChild : child.childes) {
-                        if (!TextUtils.isEmpty(nodeChild.url)) {
+                        if (!TextUtils.isEmpty(nodeChild.picUrl)) {
                             int size = RelationUtils.dp2px(getContext(), nodeChildNodeSize);
-                            if (cacheBitmapMap.get(nodeChild.url) == null) {
-                                loadBitmap(nodeChild.url, size);
+                            if (cacheBitmapMap.get(nodeChild.picUrl) == null) {
+                                loadBitmap(nodeChild.picUrl, size);
                             } else {
                                 invalidate();
                             }
@@ -269,19 +267,19 @@ public class ClueNode extends View {
         canvas.drawCircle(point.x, point.y, radius, bitmapPaint);
 
         // 需要考虑字符串长度大于node宽度的情况
-        int length = child.text.length();
+        int length = child.name.length();
         textPaint.setColor(Color.WHITE);
         if (length <= 3) {
             textPaint.setTextSize(RelationUtils.dp2px(getContext(), length < 3 ? normalTextSize :
                     smallTextSize));
-            textPaint.getTextBounds(child.text, 0, length, childTextRect);
+            textPaint.getTextBounds(child.name, 0, length, childTextRect);
             float x = point.x - childTextRect.exactCenterX();
             float y = point.y - childTextRect.exactCenterY();
-            canvas.drawText(child.text, x, y, textPaint);
+            canvas.drawText(child.name, x, y, textPaint);
         } else {
             textPaint.setTextSize(RelationUtils.dp2px(getContext(), smallTextSize));
-            int limitWidth = Math.round(textPaint.measureText(child.text, 0, 2));
-            StaticLayout layout = new StaticLayout(child.text, textPaint,
+            int limitWidth = Math.round(textPaint.measureText(child.name, 0, 2));
+            StaticLayout layout = new StaticLayout(child.name, textPaint,
                     limitWidth, Layout.Alignment.ALIGN_NORMAL, 1f, 0f, true);
             canvas.save();
             canvas.translate(point.x - layout.getWidth() / 2, point.y - layout.getHeight() / 2);
@@ -304,7 +302,7 @@ public class ClueNode extends View {
             int count = Math.min(5, child.childes.size());
             for (int i = 0; i < child.childes.size(); i++) {
                 NodeInfo info = child.childes.get(i);
-                Bitmap nodeBitmap = cacheBitmapMap.get(info.url);
+                Bitmap nodeBitmap = cacheBitmapMap.get(info.picUrl);
                 if (nodeBitmap != null) {
                     //绘制连接线
                     int radius = RelationUtils.dp2px(getContext(), subLineDistance);
@@ -333,14 +331,14 @@ public class ClueNode extends View {
                     bitmapPaint.setColor(Color.parseColor("#4D000000"));
                     canvas.drawCircle(endPoint.x, endPoint.y, r, bitmapPaint);
                     //绘制名字
-                    if (!TextUtils.isEmpty(info.text)) {
+                    if (!TextUtils.isEmpty(info.name)) {
                         textPaint.setTextSize(RelationUtils.dp2px(getContext(), textSize_10));
                         textPaint.setColor(Color.parseColor("#555555"));
-                        textPaint.getTextBounds(info.text, 0, info.text.length(), childTextRect);
+                        textPaint.getTextBounds(info.name, 0, info.name.length(), childTextRect);
                         float x = endPoint.x - childTextRect.width() / 2;
                         float space = RelationUtils.dp2px(getContext(), rootSpace);
                         float y = top + nodeBitmap.getHeight() + childTextRect.height() + space;
-                        canvas.drawText(info.text, x, y, textPaint);
+                        canvas.drawText(info.name, x, y, textPaint);
                     }
                 }
             }
@@ -353,14 +351,14 @@ public class ClueNode extends View {
             float top = (getHeight() - rootBitmap.getHeight()) >> 1;
             canvas.drawBitmap(rootBitmap, left, top, bitmapPaint);
 
-            if (!TextUtils.isEmpty(info.text)) {
+            if (!TextUtils.isEmpty(info.name)) {
                 textPaint.setColor(Color.WHITE);
                 textPaint.setTextSize(RelationUtils.dp2px(getContext(), normalTextSize));
-                textPaint.getTextBounds(info.text, 0, info.text.length(), rootTextRect);
+                textPaint.getTextBounds(info.name, 0, info.name.length(), rootTextRect);
                 float x = (getWidth() - rootTextRect.width()) >> 1;
                 float space = RelationUtils.dp2px(getContext(), rootSpace);
                 float y = top + rootBitmap.getHeight() + rootTextRect.height() + space;
-                canvas.drawText(info.text, x, y, textPaint);
+                canvas.drawText(info.name, x, y, textPaint);
             }
         }
     }

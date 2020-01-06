@@ -28,6 +28,7 @@ public class RelationUtils {
         defaultColors.add(Color.parseColor("#349C97"));
         defaultColors.add(Color.parseColor("#BE3535"));
         defaultColors.add(Color.parseColor("#D7A82F"));
+        defaultColors.add(Color.parseColor("#5CA9FD"));
     }
 
     public static Point calcPointWithAngle(Point center, int radius, double angle) {
