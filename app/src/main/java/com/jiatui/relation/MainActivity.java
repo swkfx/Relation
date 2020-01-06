@@ -1,8 +1,7 @@
 package com.jiatui.relation;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
+import android.support.v7.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -10,7 +9,7 @@ import java.util.Random;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
-    String[] titles = {"文章", "海报", "宣传册", "名片分享", "名片扫码", "文件"};
+    String[] titles = {"文章", "海报", "宣传册", "名片分享", "名片扫码", "文件", "商品", "视频"};
     String[] urls = {
             "https://acg.toubiec.cn/random",
             "http://tva2.sinaimg.cn/large/a15b4afegy1fmvjhu7kbgj21hc0u0qns.jpg",
@@ -31,9 +30,13 @@ public class MainActivity extends AppCompatActivity {
         info.url = "http://ww1.sinaimg.cn/large/0065oQSqly1g2pquqlp0nj30n00yiq8u.jpg";
         info.text = "刘志文";
         info.childes = new ArrayList<>();
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 10; i++) {
             NodeInfo child = new NodeInfo();
-            child.text = titles[i];
+            if (i < titles.length) {
+                child.text = titles[i];
+            } else {
+                child.text = "超出的";
+            }
             Random random = new Random();
             int secondChildCount = random.nextInt(5) + 1;
             Timber.d("secondChildCount=%s", secondChildCount);
@@ -52,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
             info.childes.add(child);
         }
         node.setNodeInfo(info);
+        node.setHasOtherNode(true);
 
     }
 }
