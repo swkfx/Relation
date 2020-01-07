@@ -32,7 +32,7 @@ import java.util.Map;
 
 import timber.log.Timber;
 
-public class RelationLayout extends ViewGroup {
+public class NodeLayout extends ViewGroup {
 
 
     private Matrix matrix;
@@ -53,18 +53,18 @@ public class RelationLayout extends ViewGroup {
     private int[] EXPAND_ANGLES = new int[8];
     private int[] EXPAND_ANGLES_UP = new int[4];
     private int[] EXPAND_ANGLES_DOWN = new int[4];
-    private RelationView root;
+    private ClueNode root;
     private Map<String, PointZ> map = new HashMap<>();
 
-    public RelationLayout(Context context) {
+    public NodeLayout(Context context) {
         this(context, null);
     }
 
-    public RelationLayout(Context context, AttributeSet attrs) {
+    public NodeLayout(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public RelationLayout(Context context, AttributeSet attrs, int defStyle) {
+    public NodeLayout(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init(context);
     }
@@ -80,8 +80,6 @@ public class RelationLayout extends ViewGroup {
         changeScaleMin(context, mScaleGestureDetector);
         mScroller = new OverScroller(context);
         detector = new GestureDetectorCompat(context, new MyGestureListener());
-
-        addRoot();
     }
 
     @Override
@@ -193,9 +191,43 @@ public class RelationLayout extends ViewGroup {
         return null;
     }
 
-    private void addRoot() {
+    // private int[] findNextLayout() {
+    //     int[] pos = new int[4];
+    //     float w = getMeasuredWidth() / 2f;
+    //     float h = getMeasuredHeight() / 2f;
+    //     double l = Math.hypot(w, h);//通过两条直角边算斜边长度
+    //     for (int angle : EXPAND_ANGLES) {
+    //         int lineLength;
+    //         if (angle % 180 == 0) { //水平
+    //             lineLength = (int) w;
+    //         } else if (angle % 90 == 0) { //垂直
+    //             lineLength = (int) h;
+    //         } else { //其他情况
+    //             lineLength = (int) l;
+    //         }
+    //         Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, lineLength * 2, angle);
+    //         boolean notUsed = true;
+    //         for (Region region : regions) {
+    //             if (region.contains(point.x, point.y)) {
+    //                 notUsed = false;
+    //                 break;
+    //             }
+    //         }
+    //         if (notUsed) {
+    //             pos[0] = (int) (point.x - w);
+    //             pos[1] = (int) (point.y - h);
+    //             pos[2] = (int) (point.x + w);
+    //             pos[3] = (int) (point.y + h);
+    //             return pos;
+    //         }
+    //     }
+    //     return pos;
+    // }
+
+    public void addRoot(NodeInfo rootInfo, boolean hasMore) {
         if (getContext() != null) {
-            root = new RelationView(getContext());
+            root = new ClueNode(getContext());
+            root.setNodeInfo(rootInfo,hasMore);
             addView(root);
             regions.add(new Region());
         }
@@ -245,7 +277,7 @@ public class RelationLayout extends ViewGroup {
     protected void onDraw(Canvas canvas) {
         canvas.setMatrix(matrix);
         canvas.drawColor(Color.BLACK);
-        canvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG|Paint.FILTER_BITMAP_FLAG));
+        canvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
         // drawDebugLine(canvas);
         super.onDraw(canvas);
         if (expandNodes != null && !expandNodes.isEmpty()) {
@@ -260,15 +292,15 @@ public class RelationLayout extends ViewGroup {
                 PointZ pointZ = map.get(node.getViewId() + "");
                 int distanceX = endX - startX;
                 int distanceY = endY - startY;
-                if(pointZ == null ||pointZ.originX == 0) {
+                if (pointZ == null || pointZ.originX == 0) {
                     pointZ = new PointZ();
                     pointZ.originX = startX + distanceX / DRAW_COUNT;
                     pointZ.originY = startY + distanceY / DRAW_COUNT;
                     map.put(node.getViewId() + "", pointZ);
                 }
-                if(pointZ.count < DRAW_COUNT) {
+                if (pointZ.count < DRAW_COUNT) {
                     canvas.drawLine(startX, startY, pointZ.originX, pointZ.originY, mPaint);
-                    pointZ.count ++;
+                    pointZ.count++;
                     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
                     map.put(node.getViewId() + "", pointZ);
@@ -290,13 +322,13 @@ public class RelationLayout extends ViewGroup {
                         Point op = upNode.getOriginPoint();
                         int finalX = winX - op.x;
                         int finalY = winY - op.y;
-                        Log.d(RelationLayout.class.getSimpleName(), "final: opdata " + op.x + ' ' + op.y);
-                        Log.d(RelationLayout.class.getSimpleName(), "final: " + finalX + ' ' + finalY);
+                        // Log.d(RelationLayout.class.getSimpleName(), "final: opdata " + op.x + ' ' + op.y);
+                        // Log.d(RelationLayout.class.getSimpleName(), "final: " + finalX + ' ' + finalY);
                         matrix.postTranslate(-((distanceX -finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
 //
                     }
                 } else {
-                    canvas.drawLine(startX, startY, pointZ.originX,  pointZ.originY, mPaint);
+                    canvas.drawLine(startX, startY, pointZ.originX, pointZ.originY, mPaint);
                 }
             }
         }
@@ -446,4 +478,6 @@ public class RelationLayout extends ViewGroup {
         matrix.getValues(values);
         return values[Matrix.MSCALE_X];
     }
+
+
 }

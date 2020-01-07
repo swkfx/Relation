@@ -26,9 +26,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Timber.plant(new Timber.DebugTree());
         setContentView(R.layout.activity_main);
-        UsersNode node = findViewById(R.id.clue_node);
+        NodeLayout node = findViewById(R.id.clue_node);
         NodeInfo info = new NodeInfo();
-        info.name = titles[0];
+        info.name = "刘志文";
+        info.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625.png@1280w_1l_2o_100sh.png";
         info.childes = new ArrayList<>();
         for (int i = 0; i < 15; i++) {
             NodeInfo child = new NodeInfo();
@@ -36,11 +37,6 @@ public class MainActivity extends AppCompatActivity {
                 child.name = titles[i];
             } else {
                 child.name = "超出的";
-            }
-            if (i >= urls.length) {
-                child.picUrl = "https://acg.toubiec.cn/random";
-            } else {
-                child.picUrl = urls[i];
             }
 
             Random random = new Random();
@@ -60,7 +56,8 @@ public class MainActivity extends AppCompatActivity {
             }
             info.childes.add(child);
         }
-        node.setNodeInfo(info, RelationUtils.generateChildColor(true), 66);
+        node.addRoot(info, false);
+        // node.setNodeInfo(info, RelationUtils.generateChildColor(true), 66);
         // node.setHasOtherNode(true);
 
     }

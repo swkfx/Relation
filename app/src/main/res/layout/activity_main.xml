@@ -17,9 +17,14 @@
 <!--        app:layout_constraintTop_toTopOf="parent" />-->
 
 
-    <com.jiatui.relation.UsersNode
+    <com.jiatui.relation.NodeLayout
         android:id="@+id/clue_node"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
 
 </android.support.constraint.ConstraintLayout>

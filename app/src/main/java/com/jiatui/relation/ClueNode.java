@@ -35,9 +35,8 @@ import java.util.Map;
  *      desc   :
  * </pre>
  */
-public class ClueNode extends View {
+public class ClueNode extends BaseNodeView {
 
-    private float offsetAngle = -90f;
     private NodeInfo info;
     private int rootSize = 60;//dp
     private int nodeChildSize = 40;//dp
@@ -93,17 +92,15 @@ public class ClueNode extends View {
         cacheBitmapMap = new HashMap<>();
     }
 
-    public void setNodeInfo(NodeInfo info) {
+    public void setNodeInfo(NodeInfo info, boolean has) {
         this.info = info;
+        this.hasOtherNode = has;
+
         loadRootBitmap(info.picUrl);
         loadNodeChildBitmap(info);
         invalidate();
     }
 
-    public void setHasOtherNode(boolean has) {
-        this.hasOtherNode = has;
-        invalidate();
-    }
 
     private void loadNodeChildBitmap(NodeInfo info) {
         if (info != null && info.childes != null && !info.childes.isEmpty()) {
@@ -321,7 +318,7 @@ public class ClueNode extends View {
                     bitmapPaint.setStrokeWidth(strokeWidth);
                     bitmapPaint.setColor(RelationUtils.changeColorAlpha(color, 0.5f));
                     int r = nodeBitmap.getWidth() / 2;
-                    canvas.drawCircle(endPoint.x, endPoint.y, r , bitmapPaint);
+                    canvas.drawCircle(endPoint.x, endPoint.y, r, bitmapPaint);
                     // 绘制头像
                     float left = endPoint.x - nodeBitmap.getWidth() / 2;
                     float top = endPoint.y - nodeBitmap.getHeight() / 2;
