@@ -9,6 +9,7 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -20,6 +21,8 @@ import com.jiatui.relation.util.NodeUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import timber.log.Timber;
 
 /**
  * <pre>
@@ -86,6 +89,7 @@ public class OtherClueNode extends BaseNodeView {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         initNodes();
+        Timber.d("onSizeChanged:%s-%s-%s-%s-w%s-h%s", getLeft(), getTop(), getRight(), getBottom(), w, h);
     }
 
     private void initNodes() {
@@ -118,7 +122,8 @@ public class OtherClueNode extends BaseNodeView {
 
                 int radius = NodeUtils.dp2px(getContext(), nodeChildSize) / 2;
                 child.nodeType = NodeInfo.TYPE.ATLAS;
-                Node node = new Node(startPoint, angle, distance, radius, child);
+                Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
+                Node node = new Node(startPoint, angle, distance, radius, child,f);
                 node.setColor(NodeUtils.generateChildColor(i == 0));
                 nodes.add(node);
             }
@@ -139,7 +144,7 @@ public class OtherClueNode extends BaseNodeView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         //debug draw startAngle line
-        debugDrawChild(canvas);
+        // debugDrawChild(canvas);
 
         //draw childes
         drawChildes(canvas);

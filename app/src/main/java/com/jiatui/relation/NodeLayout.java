@@ -4,9 +4,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PaintFlagsDrawFilter;
+import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -43,7 +45,6 @@ public class NodeLayout extends ViewGroup {
 
 
     private Matrix matrix;
-    private Paint mPaint;
 
     /**
      * 缩放手势检测器
@@ -60,7 +61,10 @@ public class NodeLayout extends ViewGroup {
     private ClueNode root;
     private Map<String, PointZ> map = new HashMap<>();
 
-    PaintFlagsDrawFilter drawFilter;
+
+    private PaintFlagsDrawFilter drawFilter;
+    private Paint linePaint;
+    private Path linePath;
 
     public NodeLayout(Context context) {
         this(context, null);
@@ -73,19 +77,25 @@ public class NodeLayout extends ViewGroup {
     public NodeLayout(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init(context);
+        calculateAngle(5, 0);
     }
 
     private void init(Context context) {
         setWillNotDraw(false);
         drawFilter = new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        mPaint = new Paint();
-        mPaint.setStrokeWidth(5);
-        mPaint.setColor(getResources().getColor(R.color.colorAccent));
+
         matrix = new Matrix();
         mScaleGestureDetector = new ScaleGestureDetector(context,
                 new MySimpleOnScaleGestureListener());
         changeScaleMin(context, mScaleGestureDetector);
         detector = new GestureDetectorCompat(context, new MyGestureListener());
+
+        linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        linePaint.setStrokeWidth(NodeUtils.dp2px(context, 1));
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setColor(Color.parseColor("#444444"));
+        linePaint.setPathEffect(new DashPathEffect(new float[]{8, 8}, 0));
+        linePath = new Path();
     }
 
     @Override
@@ -251,23 +261,26 @@ public class NodeLayout extends ViewGroup {
 
     public void addUsersNode(Node parentNode, NodeInfo info) {
         parentNode.getNodeInfo().isExpand = true;
-        Rect bounds = parentNode.getRegion().getBounds();
-        float startAngle = parentNode.getStartAngle();
-        int[] findAngles = startAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+        Rect bounds = parentNode.getParentRect();
+        float atParentAngle = parentNode.getAtParentAngle();
+        int[] findAngles = atParentAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
         Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
         int wR = root.getMeasuredWidth() / 2;
         int hR = root.getMeasuredHeight() / 2;
         if (point != null) {
             final UsersNode nextNode = new UsersNode(getContext());
-//                nextNode.setVisibility(INVISIBLE);
             nextNode.setViewId(id++);
-            nextNode.setExpandPoint(new Point(((int) parentNode.getCenterPoint().x), ((int) parentNode.getCenterPoint().y)));
+            int expandX = (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
+            int expandY = (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
+            nextNode.setExpandPoint(new Point(expandX, expandY));
             nextNode.setParentPoint(point);
-            Region parentRegion = new Region();
-            parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+            Region parentRegion = new Region(point.x - wR, point.y - hR,
+                    point.x + wR, point.y + hR);
             nextNode.setParentRegion(parentRegion);
             addView(nextNode);
-            float childStartAngle = startAngle + 180 % 360;
+            int w = expandX - point.x;
+            int h = expandY - point.y;
+            float childStartAngle = calculateAngle(w, h);
             nextNode.setNodeInfo(info, parentNode.getColor(), childStartAngle);
             expandNodes.add(nextNode);
             regions.add(parentRegion);
@@ -276,17 +289,18 @@ public class NodeLayout extends ViewGroup {
 
     public void addAtlasNode(Node parentNode, NodeInfo info, boolean hasMore) {
         parentNode.getNodeInfo().isExpand = true;
-        Rect bounds = parentNode.getRegion().getBounds();
-        float startAngle = parentNode.getStartAngle();
-        int[] findAngles = startAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+        Rect bounds = parentNode.getParentRect();
+        float atParentAngle = parentNode.getAtParentAngle();
+        int[] findAngles = atParentAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
         Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
         int wR = root.getMeasuredWidth() / 2;
         int hR = root.getMeasuredHeight() / 2;
         if (point != null) {
             final ClueNode nextNode = new ClueNode(getContext());
-//                nextNode.setVisibility(INVISIBLE);
             nextNode.setViewId(id++);
-            nextNode.setExpandPoint(new Point(((int) parentNode.getCenterPoint().x), ((int) parentNode.getCenterPoint().y)));
+            int expandX = (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
+            int expandY = (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
+            nextNode.setExpandPoint(new Point(expandX, expandY));
             nextNode.setParentPoint(point);
             Region parentRegion = new Region();
             parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
@@ -331,7 +345,7 @@ public class NodeLayout extends ViewGroup {
     }
 
     private int id = 10000009;
-    private final static int DRAW_COUNT = 50;
+    private final static float DRAW_COUNT = 50f;
 
 
 //     /**
@@ -366,15 +380,14 @@ public class NodeLayout extends ViewGroup {
 //     }
 
     private class PointZ {
-        int originX;
-        int originY;
+        float originX;
+        float originY;
         int count;
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.setMatrix(matrix);
-        canvas.drawColor(Color.BLACK);
         canvas.setDrawFilter(drawFilter);
 
         // drawDebugLine(canvas);
@@ -398,7 +411,7 @@ public class NodeLayout extends ViewGroup {
                     map.put(node.getViewId() + "", pointZ);
                 }
                 if (pointZ.count < DRAW_COUNT) {
-                    canvas.drawLine(startX, startY, pointZ.originX, pointZ.originY, mPaint);
+                    drawConnectLine(canvas, startX, startY, pointZ.originX, pointZ.originY);
                     pointZ.count++;
                     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
@@ -408,9 +421,9 @@ public class NodeLayout extends ViewGroup {
                         // int childIndex = getClickChildIndex(endX, endY);
                         // if (childIndex > -1) {
                         //     BaseNodeView nextView = (BaseNodeView) getChildAt(childIndex);
-//                            nextView.setVisibility(VISIBLE);
-//                            setShowAnimation(nextView, 300);
-//                         }
+                        //     nextView.setVisibility(VISIBLE);
+                        //     setShowAnimation(nextView, 300);
+                        // }
                     }
                     int childIndex = getClickChildIndex(startX, startY);
                     if (childIndex > -1) {
@@ -424,13 +437,19 @@ public class NodeLayout extends ViewGroup {
                         // Log.d(RelationLayout.class.getSimpleName(), "final: opdata " + op.x + ' ' + op.y);
                         // Log.d(RelationLayout.class.getSimpleName(), "final: " + finalX + ' ' + finalY);
                         matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
-//
                     }
                 } else {
-                    canvas.drawLine(startX, startY, pointZ.originX, pointZ.originY, mPaint);
+                    drawConnectLine(canvas, startX, startY, parentPoint.x, parentPoint.y);
                 }
             }
         }
+    }
+
+    private void drawConnectLine(Canvas canvas, float startX, float startY, float endX, float endY) {
+        linePath.reset();
+        linePath.moveTo(startX, startY);
+        linePath.lineTo(endX, endY);
+        canvas.drawPath(linePath, linePaint);
     }
 
     /**
@@ -591,4 +610,16 @@ public class NodeLayout extends ViewGroup {
         void onNodeClick(Node node);
     }
 
+    private float calculateAngle(float x, float y) {
+        float angle = Double.valueOf(Math.toDegrees(Math.atan2(y, x))).floatValue();
+        // 修正角度 返回  0-360 之间的角度
+        if (angle != 0) {
+            angle = angle % 360 == 0 ? 360 : angle % 360;
+            if (angle < 0) {
+                angle = angle + 360;
+            }
+        }
+        Timber.d("calculateAngle[%s,%s]:[%s]", x, y, angle);
+        return angle;
+    }
 }

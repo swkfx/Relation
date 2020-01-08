@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -90,11 +91,11 @@ public class ClueNode extends BaseNodeView {
         linePaint.setStyle(Paint.Style.STROKE);
         linePaint.setColor(Color.parseColor("#444444"));
         linePaint.setPathEffect(new DashPathEffect(new float[]{8, 8}, 0));
+        linePath = new Path();
 
         rootTextRect = new Rect();
         childTextRect = new Rect();
 
-        linePath = new Path();
 
         cacheBitmapMap = new HashMap<>();
     }
@@ -107,7 +108,7 @@ public class ClueNode extends BaseNodeView {
         invalidate();
     }
 
-    private void initNodes() {
+    private void initNodes(int w, int h) {
         if (nodeMap == null) {
             nodeMap = new HashMap<>();
         } else {
@@ -118,7 +119,8 @@ public class ClueNode extends BaseNodeView {
             int lineDistance = NodeUtils.dp2px(getContext(), longLineDistance);
             float radius = NodeUtils.dp2px(getContext(), nodeChildSize) / 2f;
             NodeInfo otherInfo = NodeInfo.generateOther();
-            Node otherNode = new Node(startPoint, 60f, lineDistance, radius, otherInfo);
+            Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
+            Node otherNode = new Node(startPoint, 60f, lineDistance, radius, otherInfo, f);
             otherNode.setColor(NodeUtils.getOtherNodeColor());
             nodeMap.put(otherInfo.getNodeId(), otherNode);
         }
@@ -141,7 +143,8 @@ public class ClueNode extends BaseNodeView {
                 int distance = NodeUtils.dp2px(getContext(), i > 5 ? longLineDistance : lineDistance);
                 float radius = NodeUtils.dp2px(getContext(), nodeChildSize) / 2;
                 child.nodeType = NodeInfo.TYPE.ATLAS;
-                Node node = new Node(startPoint, angle, distance, radius, child);
+                Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
+                Node node = new Node(startPoint, angle, distance, radius, child, f);
                 node.setColor(NodeUtils.generateChildColor(i == 0));
                 // nodes.add(node);
                 nodeMap.put(child.getNodeId(), node);
@@ -157,7 +160,7 @@ public class ClueNode extends BaseNodeView {
                         int childRadius = NodeUtils.dp2px(getContext(), nodeChildNodeSize) / 2;
                         NodeInfo childNodeInfo = child.childes.get(j);
                         childNodeInfo.nodeType = NodeInfo.TYPE.USER;
-                        Node childNode = new Node(node.getCenterPoint(), childStartAngle, childDistance, childRadius, childNodeInfo);
+                        Node childNode = new Node(node.getCenterPoint(), childStartAngle, childDistance, childRadius, childNodeInfo,f);
                         // nodes.add(childNode);
                         nodeMap.put(childNodeInfo.getNodeId(), childNode);
                     }
@@ -169,8 +172,8 @@ public class ClueNode extends BaseNodeView {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        initNodes();
-        Timber.d("onSizeChanged");
+        initNodes(w, h);
+        Timber.d("onSizeChanged:%s-%s-%s-%s-w%s-h%s", getLeft(), getTop(), getRight(), getBottom(), w, h);
     }
 
     private void loadNodeChildBitmap(NodeInfo info) {
@@ -250,7 +253,7 @@ public class ClueNode extends BaseNodeView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         //debug draw
-        debugDraw(canvas);
+        // debugDraw(canvas);
 
         //draw childes
         drawChildes(canvas);

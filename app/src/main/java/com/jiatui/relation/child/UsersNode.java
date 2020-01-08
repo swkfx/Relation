@@ -23,14 +23,16 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
-import com.jiatui.relation.util.NodeUtils;
 import com.jiatui.relation.model.Node;
 import com.jiatui.relation.model.NodeInfo;
+import com.jiatui.relation.util.NodeUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import timber.log.Timber;
 
 /**
  * <pre>
@@ -151,6 +153,8 @@ public class UsersNode extends BaseNodeView {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         initNodes();
+
+        Timber.d("onSizeChanged:%s-%s-%s-%s-w%s-h%s", getLeft(), getTop(), getRight(), getBottom(), w, h);
     }
 
     private void initNodes() {
@@ -186,7 +190,8 @@ public class UsersNode extends BaseNodeView {
                 float radius = NodeUtils.dp2px(getContext(), info.childes.size() >
                         circleCount ? nodeChildNodeSize : nodeChildNodeSizeLarge) / 2;
                 child.nodeType = NodeInfo.TYPE.USER;
-                Node node = new Node(startPoint, angle, distance, radius, child);
+                Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
+                Node node = new Node(startPoint, angle, distance, radius, child, f);
                 nodes.add(node);
             }
         }
@@ -206,7 +211,7 @@ public class UsersNode extends BaseNodeView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        debugDrawChild(canvas);
+        // debugDrawChild(canvas);
 
         //draw childes
         drawChildes(canvas);
@@ -224,11 +229,11 @@ public class UsersNode extends BaseNodeView {
         linePath.lineTo(point.x, point.y);
         canvas.drawPath(linePath, linePaint);
 
-        if (nodes != null && !nodes.isEmpty()) {
-            for (Node node : nodes) {
-                canvas.drawRect(node.getRect(), textPaint);
-            }
-        }
+        // if (nodes != null && !nodes.isEmpty()) {
+        //     for (Node node : nodes) {
+        //         canvas.drawRect(node.getRect(), textPaint);
+        //     }
+        // }
     }
 
     private void drawChildes(Canvas canvas) {
