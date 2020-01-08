@@ -1,4 +1,4 @@
-package com.jiatui.relation;
+package com.jiatui.relation.child;
 
 import android.content.Context;
 import android.graphics.Point;
@@ -6,9 +6,13 @@ import android.graphics.Region;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.jiatui.relation.model.Node;
+
 import java.util.List;
 
-public class BaseNodeView extends View {
+import timber.log.Timber;
+
+public abstract class BaseNodeView extends View {
     protected int viewId;
     protected List<Region> childRegions;
 
@@ -30,6 +34,26 @@ public class BaseNodeView extends View {
     public BaseNodeView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
+
+    /**
+     * 根据 点击的X,Y 判断是否有点击到child 并且 返回 子View 所在的区域
+     *
+     * @param x 在当前View中的x
+     * @param y 在当前View中的y
+     * @return 返回 子View 所在的区域 如果没有点击到 则返回null
+     */
+    // abstract Rect getChildRect(int x, int y);
+
+    /**
+     * 根据 点击的X,Y 返回绘制的child所在位置到View中心点的角度，及连接线的角度。
+     * 该方法影响父容器判断寻找下个区域的位置。
+     *
+     * @param x 在当前View中的x
+     * @param y 在当前View中的y
+     * @return 返回 子View 所在的区域 如果没有点击到 则返回null
+     */
+    // abstract float getChildAngle(int x, int y);
+    public abstract Node getNodeByPoint(float x, float y);
 
     public int getViewId() {
         return viewId;
@@ -77,5 +101,20 @@ public class BaseNodeView extends View {
 
     public void setOriginPoint(Point originPoint) {
         this.originPoint = originPoint;
+    }
+
+    protected double getChildAngle(int x, int y) {
+        int w = x - getWidth() / 2;
+        int h = y - getHeight() / 2;
+        double angle = Math.toDegrees(Math.atan2(h, w));
+        // 修正角度 返回  0-360 之间的角度
+        if (angle != 0) {
+            angle = angle % 360 == 0 ? 360 : angle % 360;
+            if (angle < 0) {
+                angle = angle + 360;
+            }
+        }
+        Timber.d("childAngle:%s", angle);
+        return angle;
     }
 }

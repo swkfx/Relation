@@ -8,11 +8,11 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PaintFlagsDrawFilter;
 import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.Region;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -21,7 +21,14 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
-import android.widget.OverScroller;
+
+import com.jiatui.relation.child.BaseNodeView;
+import com.jiatui.relation.child.ClueNode;
+import com.jiatui.relation.child.OtherClueNode;
+import com.jiatui.relation.child.UsersNode;
+import com.jiatui.relation.model.Node;
+import com.jiatui.relation.model.NodeInfo;
+import com.jiatui.relation.util.NodeUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -42,19 +49,18 @@ public class NodeLayout extends ViewGroup {
      * 缩放手势检测器
      */
     private ScaleGestureDetector mScaleGestureDetector;
-    private OverScroller mScroller;
     private GestureDetectorCompat detector;
-    private float offsetX;
-    private float offsetY;
 
     private List<Region> regions = new ArrayList<>();
-    private List<RelationView> expandNodes = new ArrayList<>();
+    private List<BaseNodeView> expandNodes = new ArrayList<>();
 
     private int[] EXPAND_ANGLES = new int[8];
     private int[] EXPAND_ANGLES_UP = new int[4];
     private int[] EXPAND_ANGLES_DOWN = new int[4];
     private ClueNode root;
     private Map<String, PointZ> map = new HashMap<>();
+
+    PaintFlagsDrawFilter drawFilter;
 
     public NodeLayout(Context context) {
         this(context, null);
@@ -71,6 +77,7 @@ public class NodeLayout extends ViewGroup {
 
     private void init(Context context) {
         setWillNotDraw(false);
+        drawFilter = new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         mPaint = new Paint();
         mPaint.setStrokeWidth(5);
         mPaint.setColor(getResources().getColor(R.color.colorAccent));
@@ -78,7 +85,6 @@ public class NodeLayout extends ViewGroup {
         mScaleGestureDetector = new ScaleGestureDetector(context,
                 new MySimpleOnScaleGestureListener());
         changeScaleMin(context, mScaleGestureDetector);
-        mScroller = new OverScroller(context);
         detector = new GestureDetectorCompat(context, new MyGestureListener());
     }
 
@@ -143,7 +149,7 @@ public class NodeLayout extends ViewGroup {
                     root.setParentRegion(regions.get(i));
                 }
             } else {
-                Rect bounds = ((RelationView) child).getParentRegion().getBounds();
+                Rect bounds = ((BaseNodeView) child).getParentRegion().getBounds();
                 child.layout(bounds.left, bounds.top, bounds.right, bounds.bottom);
             }
         }
@@ -172,7 +178,7 @@ public class NodeLayout extends ViewGroup {
                 } else {
                     lineLength = (int) l;
                 }
-                Point point = RelationUtils.calcPointWithAngle(centerX, centerY, lineLength * count, angle);
+                Point point = NodeUtils.calcPointWithAngle(centerX, centerY, lineLength * count, angle);
                 boolean used = false;
                 for (Region region : regions) {
                     if (region.contains(point.x, point.y)) {
@@ -191,81 +197,173 @@ public class NodeLayout extends ViewGroup {
         return null;
     }
 
-    // private int[] findNextLayout() {
-    //     int[] pos = new int[4];
-    //     float w = getMeasuredWidth() / 2f;
-    //     float h = getMeasuredHeight() / 2f;
-    //     double l = Math.hypot(w, h);//通过两条直角边算斜边长度
-    //     for (int angle : EXPAND_ANGLES) {
-    //         int lineLength;
-    //         if (angle % 180 == 0) { //水平
-    //             lineLength = (int) w;
-    //         } else if (angle % 90 == 0) { //垂直
-    //             lineLength = (int) h;
-    //         } else { //其他情况
-    //             lineLength = (int) l;
-    //         }
-    //         Point point = RelationUtils.calcPointWithAngle(getWidth() / 2, getHeight() / 2, lineLength * 2, angle);
-    //         boolean notUsed = true;
-    //         for (Region region : regions) {
-    //             if (region.contains(point.x, point.y)) {
-    //                 notUsed = false;
-    //                 break;
-    //             }
-    //         }
-    //         if (notUsed) {
-    //             pos[0] = (int) (point.x - w);
-    //             pos[1] = (int) (point.y - h);
-    //             pos[2] = (int) (point.x + w);
-    //             pos[3] = (int) (point.y + h);
-    //             return pos;
-    //         }
-    //     }
-    //     return pos;
-    // }
+    /**
+     * 以参数为中心点寻找周围下一个可布局的中心点
+     *
+     * @param centerX 中心点x
+     * @param centerY 中心点y
+     * @return 周围下一个可布局的 位置的中心点
+     */
+    private PointF findNextLayoutPointF(float centerX, float centerY, int[] findAngles) {
+        float w = getMeasuredWidth();
+        float h = getMeasuredHeight();
+        double l = Math.hypot(w, h);//通过两条直角边算斜边长度
+        boolean search = true;
+        int count = 1;
+        while (search) {
+            for (int angle : findAngles) {
+                int lineLength;
+                if (angle % 180 == 0) { //水平
+                    lineLength = (int) w;
+                } else if (angle % 90 == 0) {
+                    lineLength = (int) h;
+                } else {
+                    lineLength = (int) l;
+                }
+                PointF point = NodeUtils.calcPointWithAngleF(centerX, centerY, lineLength * count, angle);
+                boolean used = false;
+                for (Region region : regions) {
+                    if (region.contains(((int) point.x), ((int) point.y))) {
+                        used = true;
+                        break;
+                    }
+                }
+                if (!used) {
+                    return point;
+                }
+            }
+            count++;
+            //先设置查找20圈。防止死循环
+            search = count < 20;
+        }
+        return null;
+    }
+
 
     public void addRoot(NodeInfo rootInfo, boolean hasMore) {
         if (getContext() != null) {
             root = new ClueNode(getContext());
-            root.setNodeInfo(rootInfo,hasMore);
+            root.setNodeInfo(rootInfo, hasMore);
             addView(root);
             regions.add(new Region());
         }
     }
 
-    private int id = 10000009;
-    private final static int DRAW_COUNT = 50;
-
-    /**
-     * 添加一个下级节点
-     *
-     * @param upNode  上级节点 ，
-     * @param clickPt 点击坐标 ，
-     */
-    private void addNext(RelationView upNode, int[] clickPt) {
-        Rect nodeChildRect = upNode.getChildRect(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
-        if (nodeChildRect != null && !nodeChildRect.isEmpty()) {
-            Rect bounds = upNode.getParentRegion().getBounds();
-            int wR = upNode.getMeasuredWidth() / 2;
-            int hR = upNode.getMeasuredHeight() / 2;
-            double childAngle = upNode.getChildAngle(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
-            int[] findAngles = childAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
-            Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
-            if (point != null) {
-                final RelationView nextNode = new RelationView(getContext());
+    public void addUsersNode(Node parentNode, NodeInfo info) {
+        parentNode.getNodeInfo().isExpand = true;
+        Rect bounds = parentNode.getRegion().getBounds();
+        float startAngle = parentNode.getStartAngle();
+        int[] findAngles = startAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+        Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
+        int wR = root.getMeasuredWidth() / 2;
+        int hR = root.getMeasuredHeight() / 2;
+        if (point != null) {
+            final UsersNode nextNode = new UsersNode(getContext());
 //                nextNode.setVisibility(INVISIBLE);
-                nextNode.setViewId(id ++);
-                nextNode.setExpandPoint(new Point(clickPt[0], clickPt[1]));
+            nextNode.setViewId(id++);
+            nextNode.setExpandPoint(new Point(((int) parentNode.getCenterPoint().x), ((int) parentNode.getCenterPoint().y)));
+            nextNode.setParentPoint(point);
+            Region parentRegion = new Region();
+            parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+            nextNode.setParentRegion(parentRegion);
+            addView(nextNode);
+            float childStartAngle = startAngle + 180 % 360;
+            nextNode.setNodeInfo(info, parentNode.getColor(), childStartAngle);
+            expandNodes.add(nextNode);
+            regions.add(parentRegion);
+        }
+    }
+
+    public void addAtlasNode(Node parentNode, NodeInfo info, boolean hasMore) {
+        parentNode.getNodeInfo().isExpand = true;
+        Rect bounds = parentNode.getRegion().getBounds();
+        float startAngle = parentNode.getStartAngle();
+        int[] findAngles = startAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+        Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
+        int wR = root.getMeasuredWidth() / 2;
+        int hR = root.getMeasuredHeight() / 2;
+        if (point != null) {
+            final ClueNode nextNode = new ClueNode(getContext());
+//                nextNode.setVisibility(INVISIBLE);
+            nextNode.setViewId(id++);
+            nextNode.setExpandPoint(new Point(((int) parentNode.getCenterPoint().x), ((int) parentNode.getCenterPoint().y)));
+            nextNode.setParentPoint(point);
+            Region parentRegion = new Region();
+            parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+            nextNode.setParentRegion(parentRegion);
+            addView(nextNode);
+            nextNode.setNodeInfo(info, hasMore);
+            expandNodes.add(nextNode);
+            regions.add(parentRegion);
+        }
+    }
+
+
+    public void addOtherClueNode(NodeInfo info) {
+        if (root != null && root.isHasOtherNode()) {
+            Node otherNode = root.getOtherNode();
+            otherNode.getNodeInfo().isExpand = true;
+            Rect bounds = otherNode.getRegion().getBounds();
+            float startAngle = otherNode.getStartAngle();
+            int[] findAngles = startAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+            Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
+            int wR = root.getMeasuredWidth() / 2;
+            int hR = root.getMeasuredHeight() / 2;
+            if (point != null) {
+                final OtherClueNode nextNode = new OtherClueNode(getContext());
+//                nextNode.setVisibility(INVISIBLE);
+                nextNode.setViewId(id++);
+                nextNode.setExpandPoint(new Point(((int) otherNode.getCenterPoint().x), ((int) otherNode.getCenterPoint().y)));
                 nextNode.setParentPoint(point);
                 Region parentRegion = new Region();
                 parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
                 nextNode.setParentRegion(parentRegion);
                 addView(nextNode);
+                nextNode.setNodeInfo(info);
                 expandNodes.add(nextNode);
                 regions.add(parentRegion);
             }
         }
     }
+
+    public void removeOtherClueNode() {
+
+    }
+
+    private int id = 10000009;
+    private final static int DRAW_COUNT = 50;
+
+
+//     /**
+//      * 添加一个下级节点
+//      *
+//      * @param upNode  上级节点 ，
+//      * @param clickPt 点击坐标 ，
+//      */
+//     private void addNext(BaseNodeView upNode, int[] clickPt) {
+//         Rect nodeChildRect = upNode.getChildRect(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
+//         if (nodeChildRect != null && !nodeChildRect.isEmpty()) {
+//             Rect bounds = upNode.getParentRegion().getBounds();
+//             int wR = upNode.getMeasuredWidth() / 2;
+//             int hR = upNode.getMeasuredHeight() / 2;
+//             double childAngle = upNode.getChildAngle(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
+//             int[] findAngles = childAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
+//             Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
+//             if (point != null) {
+//                 final BaseNodeView nextNode = new BaseNodeView(getContext());
+// //                nextNode.setVisibility(INVISIBLE);
+//                 nextNode.setViewId(id++);
+//                 nextNode.setExpandPoint(new Point(clickPt[0], clickPt[1]));
+//                 nextNode.setParentPoint(point);
+//                 Region parentRegion = new Region();
+//                 parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+//                 nextNode.setParentRegion(parentRegion);
+//                 addView(nextNode);
+//                 expandNodes.add(nextNode);
+//                 regions.add(parentRegion);
+//             }
+//         }
+//     }
 
     private class PointZ {
         int originX;
@@ -277,11 +375,12 @@ public class NodeLayout extends ViewGroup {
     protected void onDraw(Canvas canvas) {
         canvas.setMatrix(matrix);
         canvas.drawColor(Color.BLACK);
-        canvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+        canvas.setDrawFilter(drawFilter);
+
         // drawDebugLine(canvas);
         super.onDraw(canvas);
         if (expandNodes != null && !expandNodes.isEmpty()) {
-            for (RelationView node : expandNodes) {
+            for (BaseNodeView node : expandNodes) {
                 // 展开子节点
                 Point expandPoint = node.getExpandPoint();
                 Point parentPoint = node.getParentPoint();
@@ -305,18 +404,18 @@ public class NodeLayout extends ViewGroup {
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
                     map.put(node.getViewId() + "", pointZ);
                     invalidate();
-                    if(pointZ.count == DRAW_COUNT) {
-                        int childIndex = getClickChildIndex(endX, endY);
-                        if (childIndex > -1) {
-                            RelationView nextView = (RelationView) getChildAt(childIndex);
+                    if (pointZ.count == DRAW_COUNT) {
+                        // int childIndex = getClickChildIndex(endX, endY);
+                        // if (childIndex > -1) {
+                        //     BaseNodeView nextView = (BaseNodeView) getChildAt(childIndex);
 //                            nextView.setVisibility(VISIBLE);
 //                            setShowAnimation(nextView, 300);
-                        }
+//                         }
                     }
                     int childIndex = getClickChildIndex(startX, startY);
                     if (childIndex > -1) {
-                        RelationView upNode = (RelationView) getChildAt(childIndex);
-                        Display display = ((Activity)getContext()).getWindowManager().getDefaultDisplay();
+                        BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
+                        Display display = ((Activity) getContext()).getWindowManager().getDefaultDisplay();
                         int winX = display.getWidth() / 2;
                         int winY = display.getHeight() / 2;
                         Point op = upNode.getOriginPoint();
@@ -324,7 +423,7 @@ public class NodeLayout extends ViewGroup {
                         int finalY = winY - op.y;
                         // Log.d(RelationLayout.class.getSimpleName(), "final: opdata " + op.x + ' ' + op.y);
                         // Log.d(RelationLayout.class.getSimpleName(), "final: " + finalX + ' ' + finalY);
-                        matrix.postTranslate(-((distanceX -finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
+                        matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
 //
                     }
                 } else {
@@ -337,7 +436,7 @@ public class NodeLayout extends ViewGroup {
     /**
      * View渐现动画效果
      */
-    public  void setShowAnimation(View view, int duration) {
+    public void setShowAnimation(View view, int duration) {
         if (null == view || duration < 0) {
             return;
         }
@@ -345,6 +444,16 @@ public class NodeLayout extends ViewGroup {
         mShowAnimation.setDuration(duration);
         mShowAnimation.setFillAfter(true);
         view.startAnimation(mShowAnimation);
+    }
+
+    private float[] invertPoint(MotionEvent e) {
+        float[] downPoint = new float[]{e.getX(), e.getY()};
+        float[] invertPoint = new float[2];//逆变换后的点击点数组
+        Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
+        matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
+        invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
+        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
+        return new float[]{invertPoint[0], invertPoint[1]};
     }
 
     private int[] invertPoint(int x, int y) {
@@ -381,15 +490,21 @@ public class NodeLayout extends ViewGroup {
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            int[] point = invertPoint(e);
+            // 转换点击坐标 从 matrix 到 标准坐标
+            float[] point = invertPoint(e);
+            // 通过点击坐标 识别点击的 child
             int childIndex = getClickChildIndex(point[0], point[1]);
+            // 根据点击的child 判断再此child 中 具体点击是哪个node
             if (childIndex > -1) {
-                RelationView upNode = (RelationView) getChildAt(childIndex);
+                BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
+                Node node = upNode.getNodeByPoint(point[0] - upNode.getLeft(), point[1] - upNode.getTop());
                 int[] originPt = new int[2];
-                originPt[0] = (int)e.getX();
-                originPt[1] = (int)e.getY();
+                originPt[0] = (int) e.getX();
+                originPt[1] = (int) e.getY();
                 upNode.setOriginPoint(new Point(originPt[0], originPt[1]));
-                addNext(upNode, point);
+                if (nodeClickListener != null && node != null) {
+                    nodeClickListener.onNodeClick(node);
+                }
                 return true;
             }
             return false;
@@ -397,12 +512,10 @@ public class NodeLayout extends ViewGroup {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            offsetX -= distanceX;
-            offsetY -= distanceY;
             matrix.postTranslate(-distanceX, -distanceY);
             // scrollBy(((int) distanceX), ((int) distanceY));
             invalidate();
-//            Timber.d("onScroll dx=%s , dy=%s", offsetX, offsetY);
+            //  Timber.d("onScroll dx=%s , dy=%s", offsetX, offsetY);
             return true;
         }
 
@@ -417,27 +530,16 @@ public class NodeLayout extends ViewGroup {
         }
     }
 
-    private int getClickChildIndex(int x, int y) {
+    private int getClickChildIndex(float x, float y) {
         int index = -1;
         for (int i = 0; i < regions.size(); i++) {
             Region region = regions.get(i);
-            if (region.contains(x, y)) {
-//                Timber.d("onSingleTapUp[%s]", i);
-                index = i;
-                break;
+            if (region.contains((int) x, (int) y)) {
+                Timber.d("getClickChildIndex[%s],regions size[%s]", i, regions.size());
+                return i;
             }
         }
         return index;
-    }
-
-    private int[] invertPoint(MotionEvent e) {
-        float[] downPoint = new float[]{e.getX(), e.getY()};
-        float[] invertPoint = new float[2];//逆变换后的点击点数组
-        Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
-        matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
-        invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
-        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
-        return new int[]{((int) invertPoint[0]), ((int) invertPoint[1])};
     }
 
 
@@ -479,5 +581,14 @@ public class NodeLayout extends ViewGroup {
         return values[Matrix.MSCALE_X];
     }
 
+    NodeClickListener nodeClickListener;
+
+    public void setNodeClickListener(NodeClickListener nodeClickListener) {
+        this.nodeClickListener = nodeClickListener;
+    }
+
+    public interface NodeClickListener {
+        void onNodeClick(Node node);
+    }
 
 }

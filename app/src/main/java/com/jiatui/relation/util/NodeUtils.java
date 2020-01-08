@@ -1,8 +1,9 @@
-package com.jiatui.relation;
+package com.jiatui.relation.util;
 
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.PointF;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.Random;
  *      desc   :
  * </pre>
  */
-public class RelationUtils {
+public class NodeUtils {
     private static List<Integer> defaultColors = new ArrayList<>();
     private static List<Integer> colors;
 
@@ -31,18 +32,18 @@ public class RelationUtils {
         defaultColors.add(Color.parseColor("#5CA9FD"));
     }
 
-    public static Point calcPointWithAngle(Point center, int radius, double angle) {
-        double radian = Math.toRadians(angle);
-        int x = (int) (center.x + Math.cos(radian) * radius);
-        int y = (int) (center.y + Math.sin(radian) * radius);
-        return new Point(x, y);
-    }
-
-    public static Point calcPointWithAngle(int x, int y, int radius, double angle) {
+    public static Point calcPointWithAngle(int x, int y, int radius, float angle) {
         double radian = Math.toRadians(angle);
         int x_ = (int) (x + Math.cos(radian) * radius);
         int y_ = (int) (y + Math.sin(radian) * radius);
         return new Point(x_, y_);
+    }
+
+    public static PointF calcPointWithAngleF(float x, float y, int radius, float angle) {
+        double radian = Math.toRadians(angle);
+        float x_ = Double.valueOf(x + Math.cos(radian) * radius).floatValue();
+        float y_ = Double.valueOf(y + Math.sin(radian) * radius).floatValue();
+        return new PointF(x_, y_);
     }
 
     public static int dp2px(Context context, int dp) {
