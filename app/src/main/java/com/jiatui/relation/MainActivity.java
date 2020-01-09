@@ -1,5 +1,6 @@
 package com.jiatui.relation;
 
+import android.graphics.PointF;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -46,7 +47,9 @@ public class MainActivity extends AppCompatActivity {
                     if (nodeData.getNodeInfo().isOtherNode()) {
                         if (nodeData.getNodeInfo().isExpand) {
                             Timber.d("该已经展开");
-                            node.removeOtherClueNode();
+                            PointF target = new PointF(nodeData.getParentRect().exactCenterX(),
+                                    nodeData.getParentRect().exactCenterY());
+                            node.moveCenterPoint(nodeData.getEndPoint());
                         } else {
                             node.addOtherClueNode(nodeData, mockOtherNode());
                         }
@@ -55,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
                         if (nodeData.getNodeInfo().isExpand) {
                             Timber.d("该已经展开");
                             // node.removeOtherClueNode();
+                            PointF target = new PointF(nodeData.getParentRect().exactCenterX(),
+                                    nodeData.getParentRect().exactCenterY());
+                            node.moveCenterPoint(nodeData.getEndPoint());
                         } else {
                             node.addUsersNode(nodeData, mockUserData(nodeData.getNodeInfo()));
                         }
@@ -64,6 +70,9 @@ public class MainActivity extends AppCompatActivity {
                     if (nodeData.getNodeInfo().isExpand) {
                         Timber.d("该已经展开");
                         // node.removeOtherClueNode();
+                        PointF target = new PointF(nodeData.getParentRect().exactCenterX(),
+                                nodeData.getParentRect().exactCenterY());
+                        node.moveCenterPoint(nodeData.getEndPoint());
                     } else {
                         node.addAtlasNode(nodeData, mockAtlasData(nodeData.getNodeInfo()), true);
 
@@ -72,10 +81,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
+            boolean isAdd = true;
+
             @Override
             public void onClick(View v) {
-                node.setSearchNode(mockRootNodeInfo(), true);
+                if (isAdd) {
+                    float x = node.getChildAt(0).getMeasuredWidth() / 2f;
+                    float y = node.getChildAt(0).getMeasuredHeight() / 2f;
+                    node.moveCenterPoint(new PointF(x, y));
+                } else {
+                    node.setSearchNode(mockRootNodeInfo(), true);
+                }
+                isAdd = true;
             }
         });
 
@@ -117,7 +136,8 @@ public class MainActivity extends AppCompatActivity {
         final NodeInfo info = new NodeInfo();
         info.name = getRandomName(2);
         info.userId = prefix + info.name.hashCode();
-        info.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625.png@1280w_1l_2o_100sh.png";
+        info.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625" +
+                ".png@1280w_1l_2o_100sh.png";
         info.childes = new ArrayList<>();
         for (int i = 0; i < 15; i++) {
             NodeInfo child = new NodeInfo();
@@ -196,7 +216,8 @@ public class MainActivity extends AppCompatActivity {
             if (i < urls.length) {
                 child.picUrl = urls[i];
             } else {
-                child.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625.png@1280w_1l_2o_100sh.png";
+                child.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625" +
+                        ".png@1280w_1l_2o_100sh.png";
             }
             info.childes.add(child);
         }
