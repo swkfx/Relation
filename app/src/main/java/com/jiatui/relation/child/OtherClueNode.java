@@ -123,7 +123,7 @@ public class OtherClueNode extends BaseNodeView {
                 int radius = NodeUtils.dp2px(getContext(), nodeChildSize) / 2;
                 child.nodeType = NodeInfo.TYPE.ATLAS;
                 Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
-                Node node = new Node(startPoint, angle, distance, radius, child,f);
+                Node node = new Node(startPoint, angle, distance, radius, child, f);
                 node.setColor(NodeUtils.generateChildColor(i == 0));
                 nodes.add(node);
             }
@@ -154,19 +154,24 @@ public class OtherClueNode extends BaseNodeView {
     }
 
     private void debugDrawChild(Canvas canvas) {
-        int x = getWidth() / 2;
-        int y = getHeight() / 2;
-        Point point = NodeUtils.calcPointWithAngle(x, y, 2000, startAngle);
-        linePath.reset();
-        linePath.moveTo(x, y);
-        linePath.lineTo(point.x, point.y);
-        canvas.drawPath(linePath, linePaint);
-
-        if (nodes != null && !nodes.isEmpty()) {
-            for (Node node : nodes) {
-                canvas.drawRect(node.getRect(), textPaint);
-            }
-        }
+        // int x = getWidth() / 2;
+        // int y = getHeight() / 2;
+        // Point point = NodeUtils.calcPointWithAngle(x, y, 2000, startAngle);
+        // linePath.reset();
+        // linePath.moveTo(x, y);
+        // linePath.lineTo(point.x, point.y);
+        // canvas.drawPath(linePath, linePaint);
+        //
+        // if (nodes != null && !nodes.isEmpty()) {
+        //     for (Node node : nodes) {
+        //         canvas.drawRect(node.getRect(), textPaint);
+        //     }
+        // }
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.WHITE);
+        paint.setStrokeWidth(10);
+        paint.setStyle(Paint.Style.STROKE);
+        canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
     }
 
     private void drawChildes(Canvas canvas) {

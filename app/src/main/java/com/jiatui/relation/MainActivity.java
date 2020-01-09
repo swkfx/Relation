@@ -2,6 +2,7 @@ package com.jiatui.relation;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 
 import com.jiatui.relation.model.Node;
 import com.jiatui.relation.model.NodeInfo;
@@ -35,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         Timber.plant(new Timber.DebugTree());
         setContentView(R.layout.activity_main);
         final NodeLayout node = findViewById(R.id.clue_node);
-        node.addRoot(mockRootNodeInfo(), true);
+        node.setRoot(mockRootNodeInfo(), true);
         // node.setNodeInfo(info, NodeUtils.generateChildColor(true), 66);
         // node.setHasOtherNode(true);
         node.setNodeClickListener(new NodeLayout.NodeClickListener() {
@@ -44,15 +45,15 @@ public class MainActivity extends AppCompatActivity {
                 if (nodeData.getNodeInfo().nodeType == NodeInfo.TYPE.ATLAS) {
                     if (nodeData.getNodeInfo().isOtherNode()) {
                         if (nodeData.getNodeInfo().isExpand) {
-                            Timber.d("收起Other");
+                            Timber.d("该已经展开");
                             node.removeOtherClueNode();
                         } else {
-                            node.addOtherClueNode(mockOtherNode());
+                            node.addOtherClueNode(nodeData, mockOtherNode());
                         }
                     } else {
                         Timber.d("点击了节点[%s]", nodeData.getNodeInfo().name);
                         if (nodeData.getNodeInfo().isExpand) {
-                            Timber.d("收起Other");
+                            Timber.d("该已经展开");
                             // node.removeOtherClueNode();
                         } else {
                             node.addUsersNode(nodeData, mockUserData(nodeData.getNodeInfo()));
@@ -61,13 +62,20 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Timber.d("点击了线索[%s]", nodeData.getNodeInfo().name);
                     if (nodeData.getNodeInfo().isExpand) {
-                        Timber.d("收起Other");
+                        Timber.d("该已经展开");
                         // node.removeOtherClueNode();
                     } else {
-                        node.addAtlasNode(nodeData, mockAtlasData(nodeData.getNodeInfo()), false);
+                        node.addAtlasNode(nodeData, mockAtlasData(nodeData.getNodeInfo()), true);
 
                     }
                 }
+            }
+        });
+
+        findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                node.setSearchNode(mockRootNodeInfo(), true);
             }
         });
 
