@@ -85,4 +85,8 @@ public class NodeUtils {
     public static int getOtherNodeColor() {
         return Color.parseColor("#8D949B");
     }
+
+    public static int getSearchNodeColor() {
+        return Color.parseColor("#065B81");
+    }
 }

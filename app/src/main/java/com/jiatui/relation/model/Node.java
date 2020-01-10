@@ -33,7 +33,7 @@ public class Node {
      * 此Node所在的View的区域
      */
     private Rect parentRect;
-
+    private PointF endPoint;//连接线的终点坐标
     private int color;
 
 
@@ -105,6 +105,14 @@ public class Node {
 
     public Rect getParentRect() {
         return parentRect;
+    }
+
+    public PointF getEndPoint() {
+        return endPoint;
+    }
+
+    public void setEndPoint(PointF endPoint) {
+        this.endPoint = endPoint;
     }
 
     public float getAtParentAngle() {

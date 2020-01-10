@@ -9,7 +9,6 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -105,10 +104,11 @@ public class ClueNode extends BaseNodeView {
         this.hasOtherNode = has;
         loadRootBitmap(info.picUrl);
         loadNodeChildBitmap(info);
+        initNodes();
         invalidate();
     }
 
-    private void initNodes(int w, int h) {
+    private void initNodes() {
         if (nodeMap == null) {
             nodeMap = new HashMap<>();
         } else {
@@ -160,7 +160,7 @@ public class ClueNode extends BaseNodeView {
                         int childRadius = NodeUtils.dp2px(getContext(), nodeChildNodeSize) / 2;
                         NodeInfo childNodeInfo = child.childes.get(j);
                         childNodeInfo.nodeType = NodeInfo.TYPE.USER;
-                        Node childNode = new Node(node.getCenterPoint(), childStartAngle, childDistance, childRadius, childNodeInfo,f);
+                        Node childNode = new Node(node.getCenterPoint(), childStartAngle, childDistance, childRadius, childNodeInfo, f);
                         // nodes.add(childNode);
                         nodeMap.put(childNodeInfo.getNodeId(), childNode);
                     }
@@ -172,7 +172,7 @@ public class ClueNode extends BaseNodeView {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        initNodes(w, h);
+        initNodes();
         Timber.d("onSizeChanged:%s-%s-%s-%s-w%s-h%s", getLeft(), getTop(), getRight(), getBottom(), w, h);
     }
 
@@ -263,11 +263,17 @@ public class ClueNode extends BaseNodeView {
     }
 
     private void debugDraw(Canvas canvas) {
-        if (nodeMap != null && !nodeMap.isEmpty()) {
-            for (Node node : nodeMap.values()) {
-                canvas.drawRect(node.getRect(), textPaint);
-            }
-        }
+        // if (nodeMap != null && !nodeMap.isEmpty()) {
+        //     for (Node node : nodeMap.values()) {
+        //         canvas.drawRect(node.getRect(), textPaint);
+        //     }
+        // }
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.WHITE);
+        paint.setStrokeWidth(10);
+        paint.setStyle(Paint.Style.STROKE);
+        canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
     }
 
     private void drawChildes(Canvas canvas) {
