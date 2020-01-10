@@ -5,6 +5,8 @@ import android.graphics.Point;
 import android.graphics.Region;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
 
 import com.jiatui.relation.model.Node;
 
@@ -116,5 +118,14 @@ public abstract class BaseNodeView extends View {
         }
         Timber.d("childAngle:%s", angle);
         return angle;
+    }
+
+    public void transformAnimation(long duration, float fromXDelta, float fromYDelta) {
+        Animation translateAnimation = new TranslateAnimation(fromXDelta, 0,fromYDelta, 0);//设置平移的起点和终点
+        translateAnimation.setDuration(duration);//动画持续的时间为10s
+        translateAnimation.setFillEnabled(true);//使其可以填充效果从而不回到原地
+        translateAnimation.setFillAfter(true);//不回到起始位置
+        setAnimation(translateAnimation);//给imageView添加的动画效果
+        translateAnimation.startNow();//动画开始执行 放在最后即可
     }
 }

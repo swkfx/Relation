@@ -411,21 +411,23 @@ public class NodeLayout extends ViewGroup {
                     map.put(node.getViewId() + "", pointZ);
                 }
                 if (pointZ.count < DRAW_COUNT) {
+                    //每一帧做line绘制
                     drawConnectLine(canvas, startX, startY, pointZ.originX, pointZ.originY);
                     pointZ.count++;
                     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
                     map.put(node.getViewId() + "", pointZ);
                     invalidate();
-                    if (pointZ.count == DRAW_COUNT) {
-                        // int childIndex = getClickChildIndex(endX, endY);
-                        // if (childIndex > -1) {
-                        //     BaseNodeView nextView = (BaseNodeView) getChildAt(childIndex);
-                        //     nextView.setVisibility(VISIBLE);
-                        //     setShowAnimation(nextView, 300);
-                        // }
+                    //第一帧的时候，同步做view的平移动画
+                    if (pointZ.count == 1) {
+                        int childIndex = getClickChildIndex(endX, endY);
+                        if (childIndex > -1) {
+                            BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
+                            upNode.transformAnimation((long)(16 * DRAW_COUNT), -distanceX, -distanceY);
+                        }
                     }
-                    int childIndex = getClickChildIndex(startX, startY);
+                    //每一帧做window的martix相对平移动画
+                    int childIndex = getClickChildIndex(startX,startY);
                     if (childIndex > -1) {
                         BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
                         Display display = ((Activity) getContext()).getWindowManager().getDefaultDisplay();
@@ -434,8 +436,6 @@ public class NodeLayout extends ViewGroup {
                         Point op = upNode.getOriginPoint();
                         int finalX = winX - op.x;
                         int finalY = winY - op.y;
-                        // Log.d(RelationLayout.class.getSimpleName(), "final: opdata " + op.x + ' ' + op.y);
-                        // Log.d(RelationLayout.class.getSimpleName(), "final: " + finalX + ' ' + finalY);
                         matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
                     }
                 } else {
