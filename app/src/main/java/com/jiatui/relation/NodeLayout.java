@@ -62,7 +62,7 @@ public class NodeLayout extends ViewGroup {
     private Map<String, PointZ> map = new HashMap<>();
 
     private ClueNode search;
-    private Region searchRegion;
+    // private Region searchRegion;
 
     private PaintFlagsDrawFilter drawFilter;
     private Paint linePaint;
@@ -70,7 +70,6 @@ public class NodeLayout extends ViewGroup {
     private Path linePath;
 
     private float gap; //default 30 dp
-    private boolean showSearch;
 
     public NodeLayout(Context context) {
         this(context, null);
@@ -108,8 +107,6 @@ public class NodeLayout extends ViewGroup {
         searchLinePaint.setColor(NodeUtils.getSearchNodeColor());
 
         gap = NodeUtils.dp2px(context, 30);
-
-        searchRegion = new Region();
     }
 
     @Override
@@ -136,7 +133,7 @@ public class NodeLayout extends ViewGroup {
         EXPAND_ANGLES_DOWN[3] = 360; // 右
 
         if (root != null) {
-            root.setParentPoint(new Point(w / 2, h / 2));
+            root.setParentPoint(new PointF(w / 2f, h / 2f));
             root.setParentRegion(new Region(0, 0, w, h));
         }
     }
@@ -176,9 +173,8 @@ public class NodeLayout extends ViewGroup {
             } else if (child == search) {
                 child.layout(l - r, b, 0, b + b);
                 if (regions.get(i) != null) {
-                    regions.get(i).set(l - r, t - b, 0, b + b);
-                    searchRegion.set(l - r, t - b, 0, b + b);
-                    search.setParentRegion(searchRegion);
+                    regions.get(i).set(l - r, b, 0, b + b);
+                    search.setParentRegion(regions.get(i));
                 }
             } else {
                 Rect bounds = ((BaseNodeView) child).getParentRegion().getBounds();
@@ -237,11 +233,13 @@ public class NodeLayout extends ViewGroup {
      *
      * @param centerX 中心点x
      * @param centerY 中心点y
+     * @param gap     每个View之间的间距 单位是px 小于0 无效
      * @return 周围下一个可布局的 位置的中心点
      */
-    private PointF findNextLayoutPointF(float centerX, float centerY, int[] findAngles) {
-        float w = getMeasuredWidth();
-        float h = getMeasuredHeight();
+    private PointF findNextLayoutPointF(float centerX, float centerY, int[] findAngles, float gap) {
+        gap = Math.max(0, gap);
+        float w = getMeasuredWidth() + gap;
+        float h = getMeasuredHeight() + gap;
         double l = Math.hypot(w, h);//通过两条直角边算斜边长度
         boolean search = true;
         int count = 1;
@@ -255,11 +253,11 @@ public class NodeLayout extends ViewGroup {
                 } else {
                     lineLength = (int) l;
                 }
-                PointF point = NodeUtils.calcPointWithAngleF(centerX, centerY, lineLength * count
-                        , angle);
+                PointF point = NodeUtils.calcPointWithAngleF(centerX, centerY, lineLength * count,
+                        angle);
                 boolean used = false;
                 for (Region region : regions) {
-                    if (region.contains(((int) point.x), ((int) point.y))) {
+                    if (region.contains((int) point.x, (int) point.y)) {
                         used = true;
                         break;
                     }
@@ -281,12 +279,14 @@ public class NodeLayout extends ViewGroup {
             if (root == null) {
                 root = new ClueNode(getContext());
                 root.setNodeInfo(rootInfo, hasMore);
+                root.setViewId(id++);
                 addView(root);
                 regions.add(new Region());//Root region
 
                 search = new ClueNode(getContext());
+                search.setViewId(id++);
                 addView(search);
-                regions.add(searchRegion);//Search region
+                regions.add(new Region());//Search region
             }
 
 
@@ -294,41 +294,28 @@ public class NodeLayout extends ViewGroup {
     }
 
     public void setSearchNode(NodeInfo searchNode, boolean hasMore) {
-        if (getContext() != null) {
-            showSearch = true;
-            int[] position = new int[2];
-            root.getLocationInWindow(position);
-            Rect bounds = searchRegion.getBounds();
-            Point point = new Point(bounds.centerX(), bounds.centerY());
-            search.setViewId(id++);
-            Point originPoint = new Point(position[0] + root.getWidth() / 2,
-                    position[1] + root.getHeight() / 2);
-            int[] expandValue = invertPoint(originPoint.x, originPoint.y);
-            search.setExpandPoint(new Point(expandValue[0], expandValue[1]));
+        PointF point = new PointF(-root.getWidth() / 2f, root.getHeight() / 2f + root.getHeight());
+        if (!expandNodes.contains(search)) {
+            float wR = root.getMeasuredWidth() / 2f;
+            float hR = root.getMeasuredHeight() / 2f;
+            int expandX = root.getMeasuredWidth() / 2;
+            int expandY = root.getMeasuredHeight() / 2;
+            PointF expandPoint = new PointF(expandX, expandY);
+            root.setOriginPoint(expandPoint);
+            search.setExpandPoint(expandPoint);
             search.setParentPoint(point);
-            search.setParentRegion(searchRegion);
+            Region parentRegion = new Region(
+                    float2Int(point.x - wR), float2Int(point.y - hR),
+                    float2Int(point.x + wR), float2Int(point.y + hR)
+            );
+            search.setParentRegion(parentRegion);
             search.setNodeInfo(searchNode, hasMore);
-            root.setOriginPoint(originPoint);
             expandNodes.add(search);
-            map.put(search.getViewId() + "", null);
-
+            invalidate();
+        } else {
+            search.setNodeInfo(searchNode, hasMore);
+            moveCenterPoint(point);
         }
-        // int wR = root.getMeasuredWidth() / 2;
-        // int hR = root.getMeasuredHeight() / 2;
-        // Point point = new Point(wR - root.getMeasuredWidth(), hR - getMeasuredHeight());
-        // final ClueNode nextNode = new ClueNode(getContext());
-        // nextNode.setViewId(id++);
-        // Point expandPoint = new Point(wR, hR);
-        // nextNode.setExpandPoint(expandPoint);
-        // nextNode.setParentPoint(point);
-        // Region parentRegion = new Region();
-        // parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
-        // nextNode.setParentRegion(parentRegion);
-        // addView(nextNode);
-        // nextNode.setNodeInfo(searchNode, hasMore);
-        //
-        // expandNodes.add(nextNode);
-        // regions.add(parentRegion);
     }
 
     public void addUsersNode(Node parentNode, NodeInfo info) {
@@ -336,25 +323,25 @@ public class NodeLayout extends ViewGroup {
         Rect bounds = parentNode.getParentRect();
         float atParentAngle = parentNode.getAtParentAngle();
         int[] findAngles = atParentAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
-        Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles, gap);
+        PointF point = findNextLayoutPointF(bounds.centerX(), bounds.centerY(), findAngles, gap);
         int wR = root.getMeasuredWidth() / 2;
         int hR = root.getMeasuredHeight() / 2;
         if (point != null) {
-            parentNode.setEndPoint(new PointF(point));
+            parentNode.setEndPoint(point);
             final UsersNode nextNode = new UsersNode(getContext());
             nextNode.setViewId(id++);
-            int expandX =
-                    (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
-            int expandY =
-                    (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
-            nextNode.setExpandPoint(new Point(expandX, expandY));
+            int expandX = (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
+            int expandY = (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
+            nextNode.setExpandPoint(new PointF(expandX, expandY));
             nextNode.setParentPoint(point);
-            Region parentRegion = new Region(point.x - wR, point.y - hR,
-                    point.x + wR, point.y + hR);
+            Region parentRegion = new Region(
+                    float2Int(point.x - wR), float2Int(point.y - hR),
+                    float2Int(point.x + wR), float2Int(point.y + hR)
+            );
             nextNode.setParentRegion(parentRegion);
             addView(nextNode);
-            int w = expandX - point.x;
-            int h = expandY - point.y;
+            float w = expandX - point.x;
+            float h = expandY - point.y;
             float childStartAngle = calculateAngle(w, h);
             nextNode.setNodeInfo(info, parentNode.getColor(), childStartAngle);
             expandNodes.add(nextNode);
@@ -367,21 +354,21 @@ public class NodeLayout extends ViewGroup {
         Rect bounds = parentNode.getParentRect();
         float atParentAngle = parentNode.getAtParentAngle();
         int[] findAngles = atParentAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
-        Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles, gap);
+        PointF point = findNextLayoutPointF(bounds.centerX(), bounds.centerY(), findAngles, gap);
         int wR = root.getMeasuredWidth() / 2;
         int hR = root.getMeasuredHeight() / 2;
         if (point != null) {
-            parentNode.setEndPoint(new PointF(point));
+            parentNode.setEndPoint(point);
             final ClueNode nextNode = new ClueNode(getContext());
             nextNode.setViewId(id++);
-            int expandX =
-                    (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
-            int expandY =
-                    (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
-            nextNode.setExpandPoint(new Point(expandX, expandY));
+            float expandX = parentNode.getCenterPoint().x + parentNode.getParentRect().left;
+            float expandY = parentNode.getCenterPoint().y + parentNode.getParentRect().top;
+            nextNode.setExpandPoint(new PointF(expandX, expandY));
             nextNode.setParentPoint(point);
-            Region parentRegion = new Region();
-            parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+            Region parentRegion = new Region(
+                    float2Int(point.x - wR), float2Int(point.y - hR),
+                    float2Int(point.x + wR), float2Int(point.y + hR)
+            );
             nextNode.setParentRegion(parentRegion);
             addView(nextNode);
             nextNode.setNodeInfo(info, hasMore);
@@ -396,22 +383,22 @@ public class NodeLayout extends ViewGroup {
         Rect bounds = parentNode.getParentRect();
         float atParentAngle = parentNode.getAtParentAngle();
         int[] findAngles = atParentAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
-        Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles, gap);
+        PointF point = findNextLayoutPointF(bounds.centerX(), bounds.centerY(), findAngles, gap);
         int wR = root.getMeasuredWidth() / 2;
         int hR = root.getMeasuredHeight() / 2;
         if (point != null) {
-            parentNode.setEndPoint(new PointF(point));
+            parentNode.setEndPoint(point);
             final OtherClueNode nextNode = new OtherClueNode(getContext());
 //                nextNode.setVisibility(INVISIBLE);
             nextNode.setViewId(id++);
-            int expandX =
-                    (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
-            int expandY =
-                    (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
-            nextNode.setExpandPoint(new Point(expandX, expandY));
+            float expandX = parentNode.getCenterPoint().x + parentNode.getParentRect().left;
+            float expandY = parentNode.getCenterPoint().y + parentNode.getParentRect().top;
+            nextNode.setExpandPoint(new PointF(expandX, expandY));
             nextNode.setParentPoint(point);
-            Region parentRegion = new Region();
-            parentRegion.set(point.x - wR, point.y - hR, point.x + wR, point.y + hR);
+            Region parentRegion = new Region(
+                    float2Int(point.x - wR), float2Int(point.y - hR),
+                    float2Int(point.x + wR), float2Int(point.y + hR)
+            );
             nextNode.setParentRegion(parentRegion);
             addView(nextNode);
             nextNode.setNodeInfo(info);
@@ -420,9 +407,6 @@ public class NodeLayout extends ViewGroup {
         }
     }
 
-    public void removeOtherClueNode() {
-
-    }
 
     private int id = 10000009;
     private final static float DRAW_COUNT = 50f;
@@ -435,14 +419,12 @@ public class NodeLayout extends ViewGroup {
 //      * @param clickPt 点击坐标 ，
 //      */
 //     private void addNext(BaseNodeView upNode, int[] clickPt) {
-//         Rect nodeChildRect = upNode.getChildRect(clickPt[0] - upNode.getLeft(), clickPt[1] -
-//         upNode.getTop());
+//         Rect nodeChildRect = upNode.getChildRect(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
 //         if (nodeChildRect != null && !nodeChildRect.isEmpty()) {
 //             Rect bounds = upNode.getParentRegion().getBounds();
 //             int wR = upNode.getMeasuredWidth() / 2;
 //             int hR = upNode.getMeasuredHeight() / 2;
-//             double childAngle = upNode.getChildAngle(clickPt[0] - upNode.getLeft(), clickPt[1]
-//             - upNode.getTop());
+//             double childAngle = upNode.getChildAngle(clickPt[0] - upNode.getLeft(), clickPt[1] - upNode.getTop());
 //             int[] findAngles = childAngle >= 180 ? EXPAND_ANGLES_UP : EXPAND_ANGLES_DOWN;
 //             Point point = findNextLayoutPoint(bounds.centerX(), bounds.centerY(), findAngles);
 //             if (point != null) {
@@ -471,36 +453,30 @@ public class NodeLayout extends ViewGroup {
     protected void onDraw(Canvas canvas) {
         canvas.setMatrix(matrix);
         canvas.setDrawFilter(drawFilter);
-
-        canvas.drawLine(getWidth() / 2, 0, getWidth() / 2, getHeight(), searchLinePaint);
-        canvas.drawLine(0, getHeight() / 2, getWidth(), getHeight() / 2, searchLinePaint);
+        // drawDebugLine(canvas);
 
 
         if (expandNodes != null && !expandNodes.isEmpty()) {
             for (BaseNodeView node : expandNodes) {
                 boolean isSearch = node == search;
-                // if (isSearch && !showSearch) {
-                //     break;
-                // }
                 // 展开子节点
-                Point expandPoint = node.getExpandPoint();
-                Point parentPoint = node.getParentPoint();
-                int startX = expandPoint.x;
-                int startY = expandPoint.y;
-                int endX = parentPoint.x;
-                int endY = parentPoint.y;
+                PointF expandPoint = node.getExpandPoint();
+                PointF parentPoint = node.getParentPoint();
+                float startX = expandPoint.x;
+                float startY = expandPoint.y;
+                float endX = parentPoint.x;
+                float endY = parentPoint.y;
                 PointZ pointZ = map.get(node.getViewId() + "");
-                int distanceX = endX - startX;
-                int distanceY = endY - startY;
-                if (pointZ == null || pointZ.originX == 0) {
+                float distanceX = endX - startX;
+                float distanceY = endY - startY;
+                if (pointZ == null || pointZ.count == 0) {
                     pointZ = new PointZ();
                     pointZ.originX = startX + distanceX / DRAW_COUNT;
                     pointZ.originY = startY + distanceY / DRAW_COUNT;
                     map.put(node.getViewId() + "", pointZ);
                 }
                 if (pointZ.count < DRAW_COUNT) {
-                    drawConnectLine(canvas, startX, startY, pointZ.originX, pointZ.originY,
-                            isSearch);
+                    drawConnectLine(canvas, startX, startY, pointZ.originX, pointZ.originY, isSearch);
                     pointZ.count++;
                     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
@@ -517,17 +493,15 @@ public class NodeLayout extends ViewGroup {
                     int childIndex = getClickChildIndex(startX, startY);
                     if (childIndex > -1) {
                         BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
-                        Display display =
-                                ((Activity) getContext()).getWindowManager().getDefaultDisplay();
-                        int winX = display.getWidth() / 2;
-                        int winY = display.getHeight() / 2;
-                        Point op = upNode.getOriginPoint();
-                        int finalX = winX - op.x;
-                        int finalY = winY - op.y;
-                        Timber.d("final: opdata " + op.x + ' ' + op.y);
-                        Timber.d("final: " + finalX + ' ' + finalY);
-                        matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT,
-                                -((distanceY - finalY) * getScale()) / DRAW_COUNT);
+                        Display display = ((Activity) getContext()).getWindowManager().getDefaultDisplay();
+                        PointF op = upNode.getOriginPoint();
+                        float winX = display.getWidth() / 2f;
+                        float winY = display.getHeight() / 2f;
+                        float finalX = winX - op.x;
+                        float finalY = winY - op.y;
+                        // Timber.d("final: opdata " + op.x + ' ' + op.y);
+                        // Timber.d("final: " + finalX + ' ' + finalY);
+                        matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
                     }
                 } else {
                     drawConnectLine(canvas, startX, startY, parentPoint.x, parentPoint.y, isSearch);
@@ -536,8 +510,7 @@ public class NodeLayout extends ViewGroup {
         }
     }
 
-    private void drawConnectLine(Canvas canvas, float startX, float startY, float endX,
-                                 float endY, boolean isSearch) {
+    private void drawConnectLine(Canvas canvas, float startX, float startY, float endX, float endY, boolean isSearch) {
         linePath.reset();
         linePath.moveTo(startX, startY);
         linePath.lineTo(endX, endY);
@@ -563,8 +536,7 @@ public class NodeLayout extends ViewGroup {
         Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
         matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
         invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
-        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint),
-                Arrays.toString(invertPoint));
+        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
         return new float[]{invertPoint[0], invertPoint[1]};
     }
 
@@ -574,9 +546,18 @@ public class NodeLayout extends ViewGroup {
         Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
         matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
         invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
-        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint),
-                Arrays.toString(invertPoint));
+        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
         return new int[]{((int) invertPoint[0]), ((int) invertPoint[1])};
+    }
+
+    private float[] invertPoint(float x, float y) {
+        float[] downPoint = new float[]{x, y};
+        float[] invertPoint = new float[2];//逆变换后的点击点数组
+        Matrix invertMatrix = new Matrix();//当前Matrix矩阵的逆矩阵
+        matrix.invert(invertMatrix);//通过当前Matrix得到对应的逆矩阵数据
+        invertMatrix.mapPoints(invertPoint, downPoint);//通过逆矩阵变化得到逆变换后的点击点
+        Timber.d("onSingleTapUp down:%s ,invert:%s", Arrays.toString(downPoint), Arrays.toString(invertPoint));
+        return new float[]{invertPoint[0], invertPoint[1]};
     }
 
 
@@ -610,12 +591,11 @@ public class NodeLayout extends ViewGroup {
             // 根据点击的child 判断再此child 中 具体点击是哪个node
             if (childIndex > -1) {
                 BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
-                int[] originPt = new int[2];
-                originPt[0] = (int) e.getX();
-                originPt[1] = (int) e.getY();
-                upNode.setOriginPoint(new Point(originPt[0], originPt[1]));
-                Node node = upNode.getNodeByPoint(point[0] - upNode.getLeft(),
-                        point[1] - upNode.getTop());
+                float[] originPt = new float[2];
+                originPt[0] = e.getX();
+                originPt[1] = e.getY();
+                upNode.setOriginPoint(new PointF(originPt[0], originPt[1]));
+                Node node = upNode.getNodeByPoint(point[0] - upNode.getLeft(), point[1] - upNode.getTop());
                 if (nodeClickListener != null && node != null) {
                     nodeClickListener.onNodeClick(node);
                 }
@@ -669,8 +649,7 @@ public class NodeLayout extends ViewGroup {
             mScale = Math.max(MIN_SCALE, mScale);
             mScale = Math.min(MAX_SCALE, mScale);
             if (mScale > MIN_SCALE && mScale < MAX_SCALE) {
-                matrix.postScale(detector.getScaleFactor(), detector.getScaleFactor(),
-                        detector.getFocusX(), detector.getFocusY());
+                matrix.postScale(detector.getScaleFactor(), detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
                 invalidate();
                 Timber.d("onScale...focusX=%f, focusY=%f, scaleFactor=%f ,mScale=%s",
                         detector.getFocusX(), detector.getFocusY(), scaleFactor, mScale);
@@ -684,46 +663,32 @@ public class NodeLayout extends ViewGroup {
     public void moveCenterPoint(PointF target) {
         float offsetX = root.getMeasuredWidth() / 2;
         float offsetY = root.getMeasuredHeight() / 2;
-        float curX = getTransX() + offsetX;
-        float curY = getTransY() + offsetY;
-        float dx = curX + target.x;
-        float dy = curY + target.y;
-        Timber.d("offset{%s,%s},cur{%s,%s},diff{%s,%s},trans{%s,%s}",
-                offsetX, offsetY, curX, curY, dx, dy, getTransX(), getTransY());
-        // TODO: 2020/1/9 算法没问题了 主要是中心点的位置不对。
-        matrix.postTranslate(-getTransX() - (target.x - offsetX),
-                -getTransY() - (target.y - offsetY));
+        float dx = (target.x - offsetX) * getScale();
+        float dy = (target.y - offsetY) * getScale();
+        Timber.d("offset{%s,%s},diff{%s,%s},trans{%s,%s}",
+                offsetX, offsetY, dx, dy, getTransX(), getTransY());
+        matrix.postTranslate(-getTransX() - dx,
+                -getTransY() - dy);
         invalidate();
     }
 
 
     /**
      * 获得缩放值
-     *
-     * @return
      */
     public float getScale() {
-        /**
-         * xscale xskew xtrans yskew yscale ytrans 0 0 0
-         */
         float[] values = new float[9];
         matrix.getValues(values);
         return values[Matrix.MSCALE_X];
     }
 
     public float getTransX() {
-        /**
-         * xscale xskew xtrans yskew yscale ytrans 0 0 0
-         */
         float[] values = new float[9];
         matrix.getValues(values);
         return values[Matrix.MTRANS_X];
     }
 
     public float getTransY() {
-        /**
-         * xscale xskew xtrans yskew yscale ytrans 0 0 0
-         */
         float[] values = new float[9];
         matrix.getValues(values);
         return values[Matrix.MTRANS_Y];
@@ -750,5 +715,9 @@ public class NodeLayout extends ViewGroup {
         }
         Timber.d("calculateAngle[%s,%s]:[%s]", x, y, angle);
         return angle;
+    }
+
+    private int float2Int(float v) {
+        return (int) (v + .5f);
     }
 }

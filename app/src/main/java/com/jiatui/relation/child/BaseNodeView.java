@@ -2,6 +2,7 @@ package com.jiatui.relation.child;
 
 import android.content.Context;
 import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.Region;
 import android.util.AttributeSet;
 import android.view.View;
@@ -18,9 +19,9 @@ public abstract class BaseNodeView extends View {
 
     protected Region parentRegion;
 
-    protected Point expandPoint;//在父容器的连线起点
-    protected Point parentPoint;//在父容器的layout 的中心店
-    protected Point originPoint;//原始点
+    protected PointF expandPoint;//在父容器的连线起点
+    protected PointF parentPoint;//在父容器的layout 的中心店
+    protected PointF originPoint;//原始点
 
 
     public BaseNodeView(Context context) {
@@ -79,27 +80,27 @@ public abstract class BaseNodeView extends View {
         this.parentRegion = parentRegion;
     }
 
-    public Point getExpandPoint() {
+    public PointF getExpandPoint() {
         return expandPoint;
     }
 
-    public void setExpandPoint(Point expandPoint) {
+    public void setExpandPoint(PointF expandPoint) {
         this.expandPoint = expandPoint;
     }
 
-    public Point getParentPoint() {
+    public PointF getParentPoint() {
         return parentPoint;
     }
 
-    public void setParentPoint(Point parentPoint) {
+    public void setParentPoint(PointF parentPoint) {
         this.parentPoint = parentPoint;
     }
 
-    public Point getOriginPoint() {
+    public PointF getOriginPoint() {
         return originPoint;
     }
 
-    public void setOriginPoint(Point originPoint) {
+    public void setOriginPoint(PointF originPoint) {
         this.originPoint = originPoint;
     }
 
