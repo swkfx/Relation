@@ -7,7 +7,6 @@ import android.graphics.Region;
 
 import com.jiatui.relation.util.NodeUtils;
 
-import timber.log.Timber;
 
 /**
  * 根据连接线的 起点坐标，角度，线长 可以计算出 此node 再界面上需要显示的中心坐标点。

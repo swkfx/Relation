@@ -83,18 +83,10 @@ public class MainActivity extends AppCompatActivity {
 
 
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
-            boolean isAdd = true;
 
             @Override
             public void onClick(View v) {
-                if (isAdd) {
-                    float x = node.getChildAt(0).getMeasuredWidth() / 2f;
-                    float y = node.getChildAt(0).getMeasuredHeight() / 2f;
-                    node.moveCenterPoint(new PointF(x, y));
-                } else {
-                    node.setSearchNode(mockRootNodeInfo(), true);
-                }
-                isAdd = true;
+                node.setSearchNode(mockRootNodeInfo(), true);
             }
         });
 
