@@ -22,7 +22,6 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
 
 import com.jiatui.relation.child.BaseNodeView;
 import com.jiatui.relation.child.ClueNode;
@@ -40,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 
 import timber.log.Timber;
+
+import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
 public class NodeLayout extends ViewGroup {
 
@@ -409,7 +410,6 @@ public class NodeLayout extends ViewGroup {
 
 
     private int id = 10000009;
-    private final static float DRAW_COUNT = 50f;
 
 
 //     /**
@@ -476,6 +476,13 @@ public class NodeLayout extends ViewGroup {
                     map.put(node.getViewId() + "", pointZ);
                 }
                 if (pointZ.count < DRAW_COUNT) {
+                    if (pointZ.count == 0) {
+                        int childIndex = getClickChildIndex(endX, endY);
+                        if (childIndex > -1) {
+                            BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
+                            upNode.transformAnimation((long)((DRAW_COUNT + 10) * 16), -distanceX, -distanceY);
+                        }
+                    }
                     //每一帧做line绘制
                     drawConnectLine(canvas, startX, startY, pointZ.originX, pointZ.originY, isSearch);
                     pointZ.count++;
@@ -484,13 +491,7 @@ public class NodeLayout extends ViewGroup {
                     map.put(node.getViewId() + "", pointZ);
                     invalidate();
                     //第一帧的时候，同步做view的平移动画
-                    if (pointZ.count == 1) {
-                        int childIndex = getClickChildIndex(endX, endY);
-                        if (childIndex > -1) {
-                            BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
-                            upNode.transformAnimation((long)(DRAW_COUNT * 18), -distanceX, -distanceY);
-                        }
-                    }
+
                     //每一帧做window的martix相对平移动画
                     int childIndex = getClickChildIndex(startX,startY);
                     if (childIndex > -1) {

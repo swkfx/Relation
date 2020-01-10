@@ -1,12 +1,12 @@
 package com.jiatui.relation.child;
 
 import android.content.Context;
-import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Region;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.Animation;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.TranslateAnimation;
 
 import com.jiatui.relation.model.Node;
@@ -126,6 +126,7 @@ public abstract class BaseNodeView extends View {
         translateAnimation.setDuration(duration);//动画持续的时间为10s
         translateAnimation.setFillEnabled(true);//使其可以填充效果从而不回到原地
         translateAnimation.setFillAfter(true);//不回到起始位置
+        translateAnimation.setInterpolator(new DecelerateInterpolator(0.6F));
         setAnimation(translateAnimation);//给imageView添加的动画效果
         translateAnimation.startNow();//动画开始执行 放在最后即可
     }
