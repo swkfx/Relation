@@ -34,6 +34,8 @@ import java.util.Map;
 
 import timber.log.Timber;
 
+import static com.jiatui.relation.util.Constants.DRAW_COUNT;
+
 /**
  * <pre>
  *      author : fangx
@@ -69,6 +71,8 @@ public class UsersNode extends BaseNodeView {
     private int circleCount = 15;
     private int NAME_MAX_LENGTH = 3;
     private List<Node> nodes;
+
+    private Map<String, Integer> map = new HashMap<>();
 
 
     public UsersNode(Context context) {
@@ -247,7 +251,6 @@ public class UsersNode extends BaseNodeView {
         int y = getHeight() / 2;
         if (info.childes != null && !info.childes.isEmpty()) {
             int size = Math.min(29, info.childes.size());
-
             for (int i = 0; i < size; i++) {
                 NodeInfo child = info.childes.get(i);
                 //绘制连接线
@@ -270,21 +273,40 @@ public class UsersNode extends BaseNodeView {
                 Point point = NodeUtils.calcPointWithAngle(x, y, radius, angle);
                 linePath.reset();
                 linePath.moveTo(x, y);
-                linePath.lineTo(point.x, point.y);
+
+                float distanceX = (point.x - x) / DRAW_COUNT;
+                float distanceY = (point.y - y) / DRAW_COUNT;
+                String key = i + 1 + "";
+                Integer num = map.get(key);
+                if(num == null) {
+                    num = 0;
+                    map.put(key, num);
+                }
+                //获取目标坐标的{x,y}
+                float originX = x + distanceX * num;
+                float originY = y + distanceY * num;
+
+                linePath.lineTo(originX, originY);
                 canvas.drawPath(linePath, linePaint);
                 //绘制 node的 child
-                drawNodeChild(canvas, point, child);
+                drawNodeChild(canvas, point, child, originX, originY);
+
+                if(num < DRAW_COUNT) {
+                    num ++;
+                    map.put(key, num);
+                    invalidate();
+                }
             }
         }
     }
 
-    private void drawNodeChild(Canvas canvas, Point point, NodeInfo child) {
+    private void drawNodeChild(Canvas canvas, Point point, NodeInfo child, float originX, float originY) {
         if (child != null) {
             Bitmap nodeBitmap = cacheBitmapMap.get(child.picUrl);
             if (nodeBitmap != null) {
                 // 绘制头像
-                float left = point.x - nodeBitmap.getWidth() / 2;
-                float top = point.y - nodeBitmap.getHeight() / 2;
+                float left = originX - nodeBitmap.getWidth() / 2f;
+                float top = originY - nodeBitmap.getHeight() / 2f;
                 bitmapPaint.reset();
                 canvas.drawBitmap(nodeBitmap, left, top, bitmapPaint);
                 //绘制名字
@@ -302,7 +324,7 @@ public class UsersNode extends BaseNodeView {
                     // float y = top + nodeBitmap.getHeight() + childTextRect.height() + space;
                     float space = NodeUtils.dp2px(getContext(), rootSpace);
                     canvas.save();
-                    canvas.translate(point.x - layout.getWidth() / 2, point.y + layout.getHeight() + space);
+                    canvas.translate(originX - layout.getWidth() / 2f, originY + layout.getHeight() + space);
                     layout.draw(canvas);
                     canvas.restore();
                 }

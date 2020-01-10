@@ -14,15 +14,21 @@ import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.AttributeSet;
+import android.util.Log;
 
+import com.jiatui.relation.NodeLayout;
 import com.jiatui.relation.model.Node;
 import com.jiatui.relation.model.NodeInfo;
 import com.jiatui.relation.util.NodeUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import timber.log.Timber;
+
+import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
 /**
  * <pre>
@@ -47,6 +53,8 @@ public class OtherClueNode extends BaseNodeView {
     private Path linePath;
 
     private List<Node> nodes;
+
+    private Map<String, Integer> map = new HashMap<>();
 
     public OtherClueNode(Context context) {
         this(context, null);
@@ -199,17 +207,35 @@ public class OtherClueNode extends BaseNodeView {
                 Point point = NodeUtils.calcPointWithAngle(x, y, radius, angle);
                 linePath.reset();
                 linePath.moveTo(x, y);
-                linePath.lineTo(point.x, point.y);
+
+                float distanceX = (point.x - x) / DRAW_COUNT;
+                float distanceY = (point.y - y) / DRAW_COUNT;
+                String key = i + 1 + "";
+                Integer num = map.get(key);
+                if(num == null) {
+                    num = 0;
+                    map.put(key, num);
+                }
+                //获取目标坐标的{x,y}
+                float originX = x + distanceX * num;
+                float originY = y + distanceY * num;
+                linePath.lineTo(originX, originY);
                 canvas.drawPath(linePath, linePaint);
-                //绘制 node的 child
-                //childLineAngle
                 int color = NodeUtils.generateChildColor(i == 0);
-                drawNodeChild(canvas, point, child, color);
+
+                drawNodeChild(canvas, child, color, originX, originY);
+
+                if(num < DRAW_COUNT) {
+                    num ++;
+                    map.put(key, num);
+                    invalidate();
+                }
             }
         }
     }
 
-    private void drawNodeChild(Canvas canvas, Point point, NodeInfo child, int color) {
+    private void drawNodeChild(Canvas canvas, NodeInfo child, int color, float originX, float originY) {
+
         bitmapPaint.reset();
         boolean hasBorder = child.childes != null && !child.childes.isEmpty();
         int size = NodeUtils.dp2px(getContext(), nodeChildSize);
@@ -219,12 +245,11 @@ public class OtherClueNode extends BaseNodeView {
             int strokeWidth = NodeUtils.dp2px(getContext(), 3);
             bitmapPaint.setStrokeWidth(strokeWidth);
             bitmapPaint.setColor(NodeUtils.changeColorAlpha(color, 0.5f));
-            canvas.drawCircle(point.x, point.y, radius + strokeWidth, bitmapPaint);
+            canvas.drawCircle(originX,originY, radius + strokeWidth, bitmapPaint);
         }
         bitmapPaint.setColor(color);
         bitmapPaint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(point.x, point.y, radius, bitmapPaint);
-
+        canvas.drawCircle(originX,originY, radius, bitmapPaint);
         // 需要考虑字符串长度大于node宽度的情况
         int length = child.name.length();
         textPaint.setColor(Color.WHITE);
@@ -232,8 +257,8 @@ public class OtherClueNode extends BaseNodeView {
             textPaint.setTextSize(NodeUtils.dp2px(getContext(), length < 3 ? normalTextSize :
                     smallTextSize));
             textPaint.getTextBounds(child.name, 0, length, childTextRect);
-            float x = point.x - childTextRect.exactCenterX();
-            float y = point.y - childTextRect.exactCenterY();
+            float x = originX - childTextRect.exactCenterX();
+            float y = originY - childTextRect.exactCenterY();
             canvas.drawText(child.name, x, y, textPaint);
         } else {
             textPaint.setTextSize(NodeUtils.dp2px(getContext(), smallTextSize));
@@ -242,7 +267,7 @@ public class OtherClueNode extends BaseNodeView {
                     limitWidth, Layout.Alignment.ALIGN_NORMAL, 1f, 0f, true);
             // TODO: 2020-01-06 宽度做限制
             canvas.save();
-            canvas.translate(point.x - layout.getWidth() / 2, point.y - layout.getHeight() / 2);
+            canvas.translate(originX  - (float) layout.getWidth() / 2, originY - (float) layout.getHeight() / 2);
             layout.draw(canvas);
             canvas.restore();
         }

@@ -489,7 +489,6 @@ public class NodeLayout extends ViewGroup {
                     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
                     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
                     map.put(node.getViewId() + "", pointZ);
-                    invalidate();
                     //第一帧的时候，同步做view的平移动画
 
                     //每一帧做window的martix相对平移动画

@@ -31,6 +31,8 @@ import java.util.Map;
 
 import timber.log.Timber;
 
+import static com.jiatui.relation.util.Constants.DRAW_COUNT;
+
 /**
  * <pre>
  *      author : fangx
@@ -65,6 +67,8 @@ public class ClueNode extends BaseNodeView {
     // private List<Node> nodes;
     private Map<String, Node> nodeMap;
 
+    private Map<String, Integer> map = new HashMap<>();
+    private boolean excuteAnimation = false;// 是否执行动画
 
     public ClueNode(Context context) {
         this(context, null);
@@ -288,16 +292,35 @@ public class ClueNode extends BaseNodeView {
                     PointF point = node.getCenterPoint();
                     linePath.reset();
                     linePath.moveTo(start.x, start.y);
-                    linePath.lineTo(point.x, point.y);
+
+
+                    float distanceX = (point.x - start.x) / DRAW_COUNT;
+                    float distanceY = (point.y - start.y) / DRAW_COUNT;
+                    String key = i + 1 + "";
+                    Integer num = map.get(key);
+                    if(num == null) {
+                        num = 0;
+                        map.put(key, num);
+                    }
+
+                    linePath.lineTo(start.x + distanceX * num, start.y + distanceY * num);
                     canvas.drawPath(linePath, linePaint);
-                    //绘制 node的 child
-                    //childLineAngle
-                    // float childAngle = node.getStartAngle() + 180 % 360;
-                    int color = node.getColor();
-                    drawNodeChild(canvas, point, child, color);
+
+                    int color = NodeUtils.generateChildColor(i == 0);
+                    //获取目标坐标的{x,y}
+                    float originX = start.x + distanceX * num;
+                    float originY = start.y + distanceY * num;
+                    drawNodeChild(canvas, child, color, originX, originY);
+
+                    if(num < DRAW_COUNT) {
+                        num ++;
+                        map.put(key, num);
+                        invalidate();
+                    }
                 }
             }
         }
+
 
         //绘制「其他」节点
         if (hasOtherNode) {
@@ -306,28 +329,64 @@ public class ClueNode extends BaseNodeView {
             PointF point = otherNode.getCenterPoint();
             linePath.reset();
             linePath.moveTo(start.x, start.y);
-            linePath.lineTo(point.x, point.y);
-            canvas.drawPath(linePath, linePaint);
 
-            bitmapPaint.reset();
-            bitmapPaint.setColor(otherNode.getColor());
-            bitmapPaint.setStyle(Paint.Style.FILL);
-            canvas.drawCircle(point.x, point.y, otherNode.getRadius(), bitmapPaint);
+            float distanceX = (point.x - start.x) / DRAW_COUNT;
+            float distanceY = (point.y - start.y) / DRAW_COUNT;
+            String key = "other";
+            Integer num = map.get(key);
+            if(num == null) {
+                num = 0;
+                map.put(key, num);
+            }
 
-            textPaint.setTextSize(NodeUtils.dp2px(getContext(), normalTextSize));
-            String text = otherNode.getNodeInfo().name;
-            textPaint.getTextBounds(text, 0, text.length(), childTextRect);
-            float textX = point.x - childTextRect.exactCenterX();
-            float textY = point.y - childTextRect.exactCenterY();
-            canvas.drawText(text, textX, textY, textPaint);
+            float originX = start.x + distanceX * num;
+            float originY = start.y + distanceY * num;
+
+            if(num < DRAW_COUNT) {
+                num ++;
+                linePath.lineTo(originX, originY);
+                canvas.drawPath(linePath, linePaint);
+                map.put(key, num);
+
+                bitmapPaint.reset();
+                bitmapPaint.setColor(otherNode.getColor());
+                bitmapPaint.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(originX, originY, otherNode.getRadius(), bitmapPaint);
+
+                textPaint.setTextSize(NodeUtils.dp2px(getContext(), normalTextSize));
+                String text = otherNode.getNodeInfo().name;
+                textPaint.getTextBounds(text, 0, text.length(), childTextRect);
+                float textX = originX - childTextRect.exactCenterX();
+                float textY = originY - childTextRect.exactCenterY();
+                canvas.drawText(text, textX, textY, textPaint);
+            } else {
+                linePath.lineTo(point.x, point.y);
+                canvas.drawPath(linePath, linePaint);
+
+                bitmapPaint.reset();
+                bitmapPaint.setColor(otherNode.getColor());
+                bitmapPaint.setStyle(Paint.Style.FILL);
+                canvas.drawCircle(point.x, point.y, otherNode.getRadius(), bitmapPaint);
+
+                textPaint.setTextSize(NodeUtils.dp2px(getContext(), normalTextSize));
+                String text = otherNode.getNodeInfo().name;
+                textPaint.getTextBounds(text, 0, text.length(), childTextRect);
+                float textX = point.x - childTextRect.exactCenterX();
+                float textY = point.y - childTextRect.exactCenterY();
+                canvas.drawText(text, textX, textY, textPaint);
+            }
+
+
         }
     }
 
-    private void drawNodeChild(Canvas canvas, PointF point, NodeInfo child, int color) {
+    private void drawNodeChild(Canvas canvas, NodeInfo child, int color, float originX, float originY) {
         Node node = nodeMap.get(child.getNodeId());
         if (node == null) {
             return;
         }
+
+
         //绘制子节点的子节点
         drawNodeChildNode(canvas, child, color);
         bitmapPaint.reset();
@@ -338,11 +397,11 @@ public class ClueNode extends BaseNodeView {
             int strokeWidth = NodeUtils.dp2px(getContext(), 3);
             bitmapPaint.setStrokeWidth(strokeWidth);
             bitmapPaint.setColor(NodeUtils.changeColorAlpha(color, 0.5f));
-            canvas.drawCircle(point.x, point.y, radius + strokeWidth, bitmapPaint);
+            canvas.drawCircle(originX, originY, radius + strokeWidth, bitmapPaint);
         }
         bitmapPaint.setColor(color);
         bitmapPaint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(point.x, point.y, radius, bitmapPaint);
+        canvas.drawCircle(originX, originY, radius, bitmapPaint);
 
         // 处理字符串长度大于node宽度的情况
         int length = child.name.length();
@@ -351,8 +410,8 @@ public class ClueNode extends BaseNodeView {
             textPaint.setTextSize(NodeUtils.dp2px(getContext(), length < 3 ? normalTextSize :
                     smallTextSize));
             textPaint.getTextBounds(child.name, 0, length, childTextRect);
-            float x = point.x - childTextRect.exactCenterX();
-            float y = point.y - childTextRect.exactCenterY();
+            float x = originX - childTextRect.exactCenterX();
+            float y = originY - childTextRect.exactCenterY();
             canvas.drawText(child.name, x, y, textPaint);
         } else {
             textPaint.setTextSize(NodeUtils.dp2px(getContext(), smallTextSize));
@@ -360,7 +419,7 @@ public class ClueNode extends BaseNodeView {
             StaticLayout layout = new StaticLayout(child.name, textPaint,
                     limitWidth, Layout.Alignment.ALIGN_NORMAL, 1f, 0f, true);
             canvas.save();
-            canvas.translate(point.x - layout.getWidth() / 2f, point.y - layout.getHeight() / 2f);
+            canvas.translate(originX - layout.getWidth() / 2f, originY - layout.getHeight() / 2f);
             layout.draw(canvas);
             canvas.restore();
         }
@@ -383,7 +442,20 @@ public class ClueNode extends BaseNodeView {
                     PointF endPoint = node.getCenterPoint();
                     linePath.reset();
                     linePath.moveTo(start.x, start.y);
-                    linePath.lineTo(endPoint.x, endPoint.y);
+
+                    float distanceX = (endPoint.x - start.x) / DRAW_COUNT;
+                    float distanceY = (endPoint.y - start.y) / DRAW_COUNT;
+                    String key = "child_" + i;
+                    Integer num = map.get(key);
+                    if(num == null) {
+                        num = 0;
+                        map.put(key, num);
+                    }
+
+                    float originX = start.x + distanceX * num;
+                    float originY = start.y + distanceY * num;
+
+                    linePath.lineTo(originX, originY);
                     canvas.drawPath(linePath, linePaint);
 
                     //绘制头像的边框
@@ -391,22 +463,22 @@ public class ClueNode extends BaseNodeView {
                     int strokeWidth = NodeUtils.dp2px(getContext(), 1.5f);
                     bitmapPaint.setStrokeWidth(strokeWidth);
                     bitmapPaint.setColor(NodeUtils.changeColorAlpha(color, 0.5f));
-                    canvas.drawCircle(endPoint.x, endPoint.y, node.getRadius(), bitmapPaint);
+                    canvas.drawCircle(originX, originY, node.getRadius(), bitmapPaint);
                     // 绘制头像
-                    float left = endPoint.x - nodeBitmap.getWidth() / 2f;
-                    float top = endPoint.y - nodeBitmap.getHeight() / 2f;
+                    float left = originX - nodeBitmap.getWidth() / 2f;
+                    float top = originY - nodeBitmap.getHeight() / 2f;
                     bitmapPaint.reset();
                     canvas.drawBitmap(nodeBitmap, left, top, bitmapPaint);
                     //绘制头像蒙层
                     bitmapPaint.setColor(Color.parseColor("#4D000000"));
-                    canvas.drawCircle(endPoint.x, endPoint.y, node.getRadius(), bitmapPaint);
+                    canvas.drawCircle(originX,originY, node.getRadius(), bitmapPaint);
                     //绘制名字
                     String text = node.getNodeInfo().name;
                     if (!TextUtils.isEmpty(text)) {
                         textPaint.setTextSize(NodeUtils.dp2px(getContext(), textSize_10));
                         textPaint.setColor(Color.parseColor("#555555"));
                         textPaint.getTextBounds(text, 0, text.length(), childTextRect);
-                        float x = endPoint.x - childTextRect.width() / 2f;
+                        float x = originX - childTextRect.width() / 2f;
                         float space = NodeUtils.dp2px(getContext(), rootSpace);
                         float y = top + nodeBitmap.getHeight() + childTextRect.height() + space;
                         canvas.drawText(text, x, y, textPaint);
