@@ -1,5 +1,7 @@
 package com.jiatui.relation;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -72,6 +74,11 @@ public class NodeLayout extends ViewGroup {
     private Path linePath;
 
     private float gap; //default 30 dp
+
+    private ObjectAnimator transAnim;
+    private float transProgress;
+    private Map<String, Float> transMap = new HashMap<>();
+
 
     public NodeLayout(Context context) {
         this(context, null);
@@ -512,7 +519,17 @@ public class NodeLayout extends ViewGroup {
                 }
             }
         }
+
+
     }
+
+    private void drawDebugLine(Canvas canvas) {
+        float cX = (-getTransX() + getWidth() / 2f) / getScale();
+        float cY = (-getTransY() + getHeight() / 2f) / getScale();
+        canvas.drawLine(cX - 20, cY, cX + 20, cY, searchLinePaint);
+        canvas.drawLine(cX, cY - 20, cX, cY + 20, searchLinePaint);
+    }
+
 
     private void drawConnectLine(Canvas canvas, float startX, float startY, float endX, float endY, boolean isSearch) {
         linePath.reset();
@@ -600,7 +617,7 @@ public class NodeLayout extends ViewGroup {
             matrix.postTranslate(-distanceX, -distanceY);
             // scrollBy(((int) distanceX), ((int) distanceY));
             invalidate();
-            //  Timber.d("onScroll dx=%s , dy=%s", offsetX, offsetY);
+            Timber.d("onScroll dx=%s , dy=%s ,matrix[%s] ", distanceX, distanceY, matrix.toString());
             return true;
         }
 
@@ -629,7 +646,7 @@ public class NodeLayout extends ViewGroup {
 
 
     private class MySimpleOnScaleGestureListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
-        private float mScale = 1;
+        private float mScale = getScale();
         private static final float MAX_SCALE = 2f;
         private static final float MIN_SCALE = .1f;
 
@@ -642,30 +659,84 @@ public class NodeLayout extends ViewGroup {
             if (mScale > MIN_SCALE && mScale < MAX_SCALE) {
                 matrix.postScale(detector.getScaleFactor(), detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
                 invalidate();
-                Timber.d("onScale...focusX=%f, focusY=%f, scaleFactor=%f ,mScale=%s",
-                        detector.getFocusX(), detector.getFocusY(), scaleFactor, mScale);
+                Timber.d("onScale...focusX=%f, focusY=%f, scaleFactor=%f ,mScale=%s ,matrix[%s]",
+                        detector.getFocusX(), detector.getFocusY(), scaleFactor, mScale, matrix.toString());
                 return true;
             }
             return false;
 
         }
-    }
 
-    public void reset() {
-        matrix.reset();
-        invalidate();
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            mScale = getScale();
+            return true;
+
+        }
     }
 
     public void moveCenterPoint(PointF target) {
-        float offsetX = root.getMeasuredWidth() / 2;
-        float offsetY = root.getMeasuredHeight() / 2;
-        float dx = (target.x - offsetX) * getScale();
-        float dy = (target.y - offsetY) * getScale();
-        Timber.d("offset{%s,%s},diff{%s,%s},trans{%s,%s}",
-                offsetX, offsetY, dx, dy, getTransX(), getTransY());
-        matrix.postTranslate(-getTransX() - dx,
-                -getTransY() - dy);
-        invalidate();
+        //求出屏幕中心坐标
+        float cX = (-getTransX() + getWidth() / 2f) / getScale();
+        float cY = (-getTransY() + getHeight() / 2f) / getScale();
+        //算出目标点到中心点的差值
+        final float transX = (target.x - cX) * getScale();
+        final float transY = (target.y - cY) * getScale();
+
+        getTransAnim().removeAllUpdateListeners();
+        getTransAnim().addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            float upValue = 0;
+
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float progress = (float) animation.getAnimatedValue();
+                float dValue = progress - upValue;
+                float dx = transX * dValue;
+                float dy = transY * dValue;
+                matrix.postTranslate(-dx, -dy);
+                Timber.d("matrix[%s]", matrix.toString());
+
+                upValue = progress;
+                invalidate();
+            }
+        });
+        getTransAnim().start();
+    }
+
+    public void reset() {
+        final float transX = getTransX();
+        final float transY = getTransY();
+        final float scale = getScale();
+
+        // matrix.preScale(1 / scale, 1 / scale);
+        // matrix.postTranslate(-transX, -transY);
+        // invalidate();
+        // Timber.d("matrix[%s]", matrix.toString());
+        getTransAnim().removeAllUpdateListeners();
+        getTransAnim().addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            float upValue = 0;
+            float ts;
+
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float progress = (float) animation.getAnimatedValue();
+                float dValue = progress - upValue;
+                float dx = transX * dValue;
+                float dy = transY * dValue;
+                if (dValue != 0) {
+                    float ds = (scale - 1) * dValue;
+                    ts += ds;
+                    float target = scale - ts;
+                    matrix.preScale(target / getScale(), target / getScale());
+                }
+                matrix.postTranslate(-dx, -dy);
+                Timber.d("matrix[%s]", matrix.toString());
+
+                upValue = progress;
+                invalidate();
+            }
+        });
+        getTransAnim().start();
     }
 
 
@@ -715,5 +786,22 @@ public class NodeLayout extends ViewGroup {
 
     private int float2Int(float v) {
         return (int) (v + .5f);
+    }
+
+    private ObjectAnimator getTransAnim() {
+        if (transAnim == null) {
+            transAnim = ObjectAnimator
+                    .ofFloat(this, "transProgress", 0, 1f)
+                    .setDuration(500);
+        }
+        return transAnim;
+    }
+
+    public float getTransProgress() {
+        return transProgress;
+    }
+
+    public void setTransProgress(float transProgress) {
+        this.transProgress = transProgress;
     }
 }

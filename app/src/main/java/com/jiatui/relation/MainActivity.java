@@ -47,8 +47,6 @@ public class MainActivity extends AppCompatActivity {
                     if (nodeData.getNodeInfo().isOtherNode()) {
                         if (nodeData.getNodeInfo().isExpand) {
                             Timber.d("该已经展开");
-                            PointF target = new PointF(nodeData.getParentRect().exactCenterX(),
-                                    nodeData.getParentRect().exactCenterY());
                             node.moveCenterPoint(nodeData.getEndPoint());
                         } else {
                             node.addOtherClueNode(nodeData, mockOtherNode());
@@ -57,9 +55,6 @@ public class MainActivity extends AppCompatActivity {
                         Timber.d("点击了节点[%s]", nodeData.getNodeInfo().name);
                         if (nodeData.getNodeInfo().isExpand) {
                             Timber.d("该已经展开");
-                            // node.removeOtherClueNode();
-                            PointF target = new PointF(nodeData.getParentRect().exactCenterX(),
-                                    nodeData.getParentRect().exactCenterY());
                             node.moveCenterPoint(nodeData.getEndPoint());
                         } else {
                             node.addUsersNode(nodeData, mockUserData(nodeData.getNodeInfo()));
@@ -69,9 +64,6 @@ public class MainActivity extends AppCompatActivity {
                     Timber.d("点击了线索[%s]", nodeData.getNodeInfo().name);
                     if (nodeData.getNodeInfo().isExpand) {
                         Timber.d("该已经展开");
-                        // node.removeOtherClueNode();
-                        PointF target = new PointF(nodeData.getParentRect().exactCenterX(),
-                                nodeData.getParentRect().exactCenterY());
                         node.moveCenterPoint(nodeData.getEndPoint());
                     } else {
                         node.addAtlasNode(nodeData, mockAtlasData(nodeData.getNodeInfo()), true);
@@ -81,12 +73,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
+        // findViewById(R.id.button).setVisibility(View.GONE);
         findViewById(R.id.button).setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                node.setSearchNode(mockRootNodeInfo(), true);
+                // node.setSearchNode(mockRootNodeInfo(), true);
+                node.reset();
             }
         });
 
@@ -131,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         info.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625" +
                 ".png@1280w_1l_2o_100sh.png";
         info.childes = new ArrayList<>();
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 1; i++) {
             NodeInfo child = new NodeInfo();
             child.sourceType = prefix + i;
             if (i < titles.length) {
