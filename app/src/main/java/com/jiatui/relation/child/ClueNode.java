@@ -33,6 +33,7 @@ import timber.log.Timber;
 
 import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
+
 /**
  * <pre>
  *      author : fangx
@@ -64,7 +65,6 @@ public class ClueNode extends BaseNodeView {
     private Map<String, Bitmap> cacheBitmapMap;
 
     private boolean hasOtherNode;//是否有其他node
-    // private List<Node> nodes;
     private Map<String, Node> nodeMap;
 
     private Map<String, Integer> map = new HashMap<>();
@@ -296,9 +296,9 @@ public class ClueNode extends BaseNodeView {
 
                     float distanceX = (point.x - start.x) / DRAW_COUNT;
                     float distanceY = (point.y - start.y) / DRAW_COUNT;
-                    String key = i + 1 + "";
+                    String key = child.getNodeId();
                     Integer num = map.get(key);
-                    if(num == null) {
+                    if (num == null) {
                         num = 0;
                         map.put(key, num);
                     }
@@ -306,15 +306,16 @@ public class ClueNode extends BaseNodeView {
                     linePath.lineTo(start.x + distanceX * num, start.y + distanceY * num);
                     canvas.drawPath(linePath, linePaint);
 
-                    int color = NodeUtils.generateChildColor(i == 0);
+                    int color = node.getColor();
                     //获取目标坐标的{x,y}
                     float originX = start.x + distanceX * num;
                     float originY = start.y + distanceY * num;
-                    drawNodeChild(canvas, child, color, originX, originY);
+                    drawNodeChild(canvas, child, color, originX, originY, num);
 
-                    if(num < DRAW_COUNT) {
-                        num ++;
+                    if (num <= DRAW_COUNT) {
+                        num++;
                         map.put(key, num);
+                        Timber.d("%s[%s]", key, num);
                         invalidate();
                     }
                 }
@@ -334,7 +335,7 @@ public class ClueNode extends BaseNodeView {
             float distanceY = (point.y - start.y) / DRAW_COUNT;
             String key = "other";
             Integer num = map.get(key);
-            if(num == null) {
+            if (num == null) {
                 num = 0;
                 map.put(key, num);
             }
@@ -342,8 +343,8 @@ public class ClueNode extends BaseNodeView {
             float originX = start.x + distanceX * num;
             float originY = start.y + distanceY * num;
 
-            if(num < DRAW_COUNT) {
-                num ++;
+            if (num < DRAW_COUNT) {
+                num++;
                 linePath.lineTo(originX, originY);
                 canvas.drawPath(linePath, linePaint);
                 map.put(key, num);
@@ -380,15 +381,14 @@ public class ClueNode extends BaseNodeView {
         }
     }
 
-    private void drawNodeChild(Canvas canvas, NodeInfo child, int color, float originX, float originY) {
+    private void drawNodeChild(Canvas canvas, NodeInfo child, int color, float originX, float originY, Integer num) {
         Node node = nodeMap.get(child.getNodeId());
         if (node == null) {
             return;
         }
-
-
         //绘制子节点的子节点
-        drawNodeChildNode(canvas, child, color);
+        drawNodeChildNode(canvas, child, color, originX, originY, num);
+
         bitmapPaint.reset();
         boolean hasBorder = child.childes != null && child.childes.size() > 5;
         float radius = node.getRadius();
@@ -430,7 +430,7 @@ public class ClueNode extends BaseNodeView {
     /**
      * 绘制子节点的子节点
      */
-    private void drawNodeChildNode(Canvas canvas, NodeInfo child, int color) {
+    private void drawNodeChildNode(Canvas canvas, NodeInfo child, int color, float parentOriginX, float parentOriginY, Integer num) {
         if (child != null && child.childes != null && !child.childes.isEmpty()) {
             for (int i = 0; i < child.childes.size(); i++) {
                 NodeInfo childInfo = child.childes.get(i);
@@ -441,19 +441,20 @@ public class ClueNode extends BaseNodeView {
                     PointF start = node.getStartPoint();
                     PointF endPoint = node.getCenterPoint();
                     linePath.reset();
-                    linePath.moveTo(start.x, start.y);
+                    linePath.moveTo(parentOriginX, parentOriginY);
 
                     float distanceX = (endPoint.x - start.x) / DRAW_COUNT;
                     float distanceY = (endPoint.y - start.y) / DRAW_COUNT;
-                    String key = "child_" + i;
-                    Integer num = map.get(key);
-                    if(num == null) {
-                        num = 0;
-                        map.put(key, num);
-                    }
+                    // Timber.d("x[%s],y[%s]", distanceX, distanceY);
+                    // String key = childInfo.getNodeId();
+                    // Integer num = map.get(key);
+                    // if (num == null) {
+                    //     num = 0;
+                    //     map.put(key, num);
+                    // }
 
-                    float originX = start.x + distanceX * num;
-                    float originY = start.y + distanceY * num;
+                    float originX = parentOriginX + distanceX * num;
+                    float originY = parentOriginY + distanceY * num;
 
                     linePath.lineTo(originX, originY);
                     canvas.drawPath(linePath, linePaint);
@@ -471,7 +472,7 @@ public class ClueNode extends BaseNodeView {
                     canvas.drawBitmap(nodeBitmap, left, top, bitmapPaint);
                     //绘制头像蒙层
                     bitmapPaint.setColor(Color.parseColor("#4D000000"));
-                    canvas.drawCircle(originX,originY, node.getRadius(), bitmapPaint);
+                    canvas.drawCircle(originX, originY, node.getRadius(), bitmapPaint);
                     //绘制名字
                     String text = node.getNodeInfo().name;
                     if (!TextUtils.isEmpty(text)) {

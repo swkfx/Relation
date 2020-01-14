@@ -122,6 +122,7 @@ public abstract class BaseNodeView extends View {
     }
 
     public void transformAnimation(long duration, float fromXDelta, float fromYDelta) {
+        clearAnimation();
         Animation translateAnimation = new TranslateAnimation(fromXDelta, 0,fromYDelta, 0);//设置平移的起点和终点
         translateAnimation.setDuration(duration);//动画持续的时间为10s
         translateAnimation.setFillEnabled(true);//使其可以填充效果从而不回到原地

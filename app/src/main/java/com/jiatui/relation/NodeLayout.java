@@ -42,6 +42,7 @@ import timber.log.Timber;
 
 import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
+
 public class NodeLayout extends ViewGroup {
 
 
@@ -480,7 +481,7 @@ public class NodeLayout extends ViewGroup {
                         int childIndex = getClickChildIndex(endX, endY);
                         if (childIndex > -1) {
                             BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
-                            upNode.transformAnimation((long)((DRAW_COUNT + 10) * 16), -distanceX, -distanceY);
+                            upNode.transformAnimation((long) ((DRAW_COUNT + 10) * 16), -distanceX, -distanceY);
                         }
                     }
                     //每一帧做line绘制
@@ -492,7 +493,7 @@ public class NodeLayout extends ViewGroup {
                     //第一帧的时候，同步做view的平移动画
 
                     //每一帧做window的martix相对平移动画
-                    int childIndex = getClickChildIndex(startX,startY);
+                    int childIndex = getClickChildIndex(startX, startY);
                     if (childIndex > -1) {
                         BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
 
@@ -648,6 +649,11 @@ public class NodeLayout extends ViewGroup {
             return false;
 
         }
+    }
+
+    public void reset() {
+        matrix.reset();
+        invalidate();
     }
 
     public void moveCenterPoint(PointF target) {

@@ -27,14 +27,13 @@ import com.jiatui.relation.model.Node;
 import com.jiatui.relation.model.NodeInfo;
 import com.jiatui.relation.util.NodeUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import timber.log.Timber;
 
 import static com.jiatui.relation.util.Constants.DRAW_COUNT;
+
 
 /**
  * <pre>
@@ -70,7 +69,8 @@ public class UsersNode extends BaseNodeView {
 
     private int circleCount = 15;
     private int NAME_MAX_LENGTH = 3;
-    private List<Node> nodes;
+
+    private Map<String, Node> nodeMap;
 
     private Map<String, Integer> map = new HashMap<>();
 
@@ -162,10 +162,10 @@ public class UsersNode extends BaseNodeView {
     }
 
     private void initNodes() {
-        if (nodes == null) {
-            nodes = new ArrayList<>();
+        if (nodeMap == null) {
+            nodeMap = new HashMap<>();
         } else {
-            nodes.clear();
+            nodeMap.clear();
         }
 
         PointF startPoint = new PointF(getWidth() / 2f, getHeight() / 2f);
@@ -196,7 +196,8 @@ public class UsersNode extends BaseNodeView {
                 child.nodeType = NodeInfo.TYPE.USER;
                 Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
                 Node node = new Node(startPoint, angle, distance, radius, child, f);
-                nodes.add(node);
+                node.setColor(NodeUtils.generateChildColor(i == 0));
+                nodeMap.put(child.getNodeId(), node);
             }
         }
     }
@@ -278,7 +279,7 @@ public class UsersNode extends BaseNodeView {
                 float distanceY = (point.y - y) / DRAW_COUNT;
                 String key = i + 1 + "";
                 Integer num = map.get(key);
-                if(num == null) {
+                if (num == null) {
                     num = 0;
                     map.put(key, num);
                 }
@@ -291,8 +292,8 @@ public class UsersNode extends BaseNodeView {
                 //绘制 node的 child
                 drawNodeChild(canvas, point, child, originX, originY);
 
-                if(num < DRAW_COUNT) {
-                    num ++;
+                if (num < DRAW_COUNT) {
+                    num++;
                     map.put(key, num);
                     invalidate();
                 }
@@ -379,8 +380,8 @@ public class UsersNode extends BaseNodeView {
 
     @Override
     public Node getNodeByPoint(float x, float y) {
-        if (nodes != null && !nodes.isEmpty()) {
-            for (Node node : nodes) {
+        if (nodeMap != null && !nodeMap.isEmpty()) {
+            for (Node node : nodeMap.values()) {
                 if (node.getRegion().contains((int) x, (int) y)) {
                     return node;
                 }

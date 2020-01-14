@@ -9,21 +9,16 @@ import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.AttributeSet;
-import android.util.Log;
 
-import com.jiatui.relation.NodeLayout;
 import com.jiatui.relation.model.Node;
 import com.jiatui.relation.model.NodeInfo;
 import com.jiatui.relation.util.NodeUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import timber.log.Timber;
@@ -52,7 +47,8 @@ public class OtherClueNode extends BaseNodeView {
     private Rect childTextRect;
     private Path linePath;
 
-    private List<Node> nodes;
+    // private List<Node> nodes;
+    private Map<String, Node> nodeMap;
 
     private Map<String, Integer> map = new HashMap<>();
 
@@ -101,10 +97,10 @@ public class OtherClueNode extends BaseNodeView {
     }
 
     private void initNodes() {
-        if (nodes == null) {
-            nodes = new ArrayList<>();
+        if (nodeMap == null) {
+            nodeMap = new HashMap<>();
         } else {
-            nodes.clear();
+            nodeMap.clear();
         }
 
         PointF startPoint = new PointF(getWidth() / 2f, getHeight() / 2f);
@@ -133,7 +129,7 @@ public class OtherClueNode extends BaseNodeView {
                 Rect f = new Rect(getLeft(), getTop(), getRight(), getBottom());
                 Node node = new Node(startPoint, angle, distance, radius, child, f);
                 node.setColor(NodeUtils.generateChildColor(i == 0));
-                nodes.add(node);
+                nodeMap.put(child.getNodeId(), node);
             }
         }
     }
@@ -212,7 +208,7 @@ public class OtherClueNode extends BaseNodeView {
                 float distanceY = (point.y - y) / DRAW_COUNT;
                 String key = i + 1 + "";
                 Integer num = map.get(key);
-                if(num == null) {
+                if (num == null) {
                     num = 0;
                     map.put(key, num);
                 }
@@ -221,12 +217,11 @@ public class OtherClueNode extends BaseNodeView {
                 float originY = y + distanceY * num;
                 linePath.lineTo(originX, originY);
                 canvas.drawPath(linePath, linePaint);
-                int color = NodeUtils.generateChildColor(i == 0);
-
+                int color = nodeMap.get(child.getNodeId()).getColor();
                 drawNodeChild(canvas, child, color, originX, originY);
 
-                if(num < DRAW_COUNT) {
-                    num ++;
+                if (num < DRAW_COUNT) {
+                    num++;
                     map.put(key, num);
                     invalidate();
                 }
@@ -245,11 +240,11 @@ public class OtherClueNode extends BaseNodeView {
             int strokeWidth = NodeUtils.dp2px(getContext(), 3);
             bitmapPaint.setStrokeWidth(strokeWidth);
             bitmapPaint.setColor(NodeUtils.changeColorAlpha(color, 0.5f));
-            canvas.drawCircle(originX,originY, radius + strokeWidth, bitmapPaint);
+            canvas.drawCircle(originX, originY, radius + strokeWidth, bitmapPaint);
         }
         bitmapPaint.setColor(color);
         bitmapPaint.setStyle(Paint.Style.FILL);
-        canvas.drawCircle(originX,originY, radius, bitmapPaint);
+        canvas.drawCircle(originX, originY, radius, bitmapPaint);
         // 需要考虑字符串长度大于node宽度的情况
         int length = child.name.length();
         textPaint.setColor(Color.WHITE);
@@ -267,7 +262,7 @@ public class OtherClueNode extends BaseNodeView {
                     limitWidth, Layout.Alignment.ALIGN_NORMAL, 1f, 0f, true);
             // TODO: 2020-01-06 宽度做限制
             canvas.save();
-            canvas.translate(originX  - (float) layout.getWidth() / 2, originY - (float) layout.getHeight() / 2);
+            canvas.translate(originX - (float) layout.getWidth() / 2, originY - (float) layout.getHeight() / 2);
             layout.draw(canvas);
             canvas.restore();
         }
@@ -305,8 +300,8 @@ public class OtherClueNode extends BaseNodeView {
 
     @Override
     public Node getNodeByPoint(float x, float y) {
-        if (nodes != null && !nodes.isEmpty()) {
-            for (Node node : nodes) {
+        if (nodeMap != null && !nodeMap.isEmpty()) {
+            for (Node node : nodeMap.values()) {
                 if (node.getRegion().contains((int) x, (int) y)) {
                     return node;
                 }
