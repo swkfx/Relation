@@ -22,6 +22,7 @@ public class NodeInfo {
     public @TYPE
     int nodeType;
     public boolean isExpand;
+    public boolean isRoot;
 
 
     public @interface TYPE {
@@ -33,6 +34,7 @@ public class NodeInfo {
         return TextUtils.equals("C0000", sourceType);
     }
 
+
     public static NodeInfo generateOther() {
         NodeInfo info = new NodeInfo();
         info.sourceType = "C0000";
@@ -42,11 +44,14 @@ public class NodeInfo {
     }
 
     public String getNodeId() {
-        if (TextUtils.isEmpty(sourceType)) {
-            return userId;
-        } else {
-            return sourceType;
-        }
+        // if (TextUtils.isEmpty(sourceType)) {
+        //     return userId;
+        // } else {
+        //     return sourceType;
+        // }
+        String u = TextUtils.isEmpty(userId) ? "" : userId;
+        String s = TextUtils.isEmpty(sourceType) ? "" : sourceType;
+        return u + s;
     }
 
 

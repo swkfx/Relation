@@ -71,6 +71,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+
+            @Override
+            public void onRootNodeClick(Node node) {
+                Timber.d("RootNode Click [%s]", node.getNodeInfo().name);
+            }
         });
 
         // findViewById(R.id.button).setVisibility(View.GONE);

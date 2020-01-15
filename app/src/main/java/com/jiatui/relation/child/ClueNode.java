@@ -1,7 +1,6 @@
 package com.jiatui.relation.child;
 
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -32,8 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import timber.log.Timber;
-
-import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
 
 /**
@@ -68,6 +65,7 @@ public class ClueNode extends BaseNodeView {
 
     private boolean hasOtherNode;//是否有其他node
     private Map<String, Node> nodeMap;
+    private Node rootNode;
 
     // private Map<String, Integer> map = new HashMap<>();
 
@@ -109,8 +107,24 @@ public class ClueNode extends BaseNodeView {
         this.hasOtherNode = has;
         loadRootBitmap(info.picUrl);
         loadNodeChildBitmap(info);
+        initRoot();
         initNodes();
         invalidate();
+    }
+
+    private void initRoot() {
+        float cx = getWidth() / 2f;
+        float cy = getHeight() / 2f;
+        int size = NodeUtils.dp2px(getContext(), rootSize);
+        float radius = size / 2f;
+        // Region region = new Region(((int) (cx - radius)), ((int) (cy - radius)), ((int) (cx + radius)), ((int) (cy + radius)));
+        Rect rect = new Rect(0, 0, getWidth(), getHeight());
+        PointF startPoint = new PointF(cx, cy);
+        if (info != null) {
+            info.isRoot = true;
+            rootNode = new Node(startPoint, 0, 0, radius, info, rect);
+            rootNode.setEndPoint(startPoint);
+        }
     }
 
     private void initNodes() {
@@ -188,6 +202,7 @@ public class ClueNode extends BaseNodeView {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        initRoot();
         initNodes();
         Timber.d("onSizeChanged:%s-%s-%s-%s-w%s-h%s", getLeft(), getTop(), getRight(), getBottom(), w, h);
     }
@@ -502,6 +517,9 @@ public class ClueNode extends BaseNodeView {
 
     @Override
     public Node getNodeByPoint(float x, float y) {
+        if (rootNode != null && rootNode.getRegion().contains((int) x, (int) y)) {
+            return rootNode;
+        }
         if (nodeMap != null && !nodeMap.isEmpty()) {
             for (Node node : nodeMap.values()) {
                 if (node.getRegion().contains((int) x, (int) y)) {

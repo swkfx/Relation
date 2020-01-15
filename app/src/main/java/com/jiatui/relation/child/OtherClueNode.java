@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.text.Layout;
@@ -46,10 +45,10 @@ public class OtherClueNode extends BaseNodeView {
     private Rect childTextRect;
     private Path linePath;
 
-    // private List<Node> nodes;
     private Map<String, Node> nodeMap;
 
-    // private Map<String, Integer> map = new HashMap<>();
+    private Node rootNode;
+
 
     public OtherClueNode(Context context) {
         this(context, null);
@@ -91,8 +90,23 @@ public class OtherClueNode extends BaseNodeView {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        initRoot();
         initNodes();
         Timber.d("onSizeChanged:%s-%s-%s-%s-w%s-h%s", getLeft(), getTop(), getRight(), getBottom(), w, h);
+    }
+
+    private void initRoot() {
+        float cx = getWidth() / 2f;
+        float cy = getHeight() / 2f;
+        int size = NodeUtils.dp2px(getContext(), nodeChildSize);
+        float radius = size / 2f;
+        Rect rect = new Rect(0, 0, getWidth(), getHeight());
+        PointF startPoint = new PointF(cx, cy);
+        if (info != null) {
+            info.isRoot = true;
+            rootNode = new Node(startPoint, 0, 0, radius, info, rect);
+            rootNode.setEndPoint(startPoint);
+        }
     }
 
     private void initNodes() {
@@ -274,6 +288,9 @@ public class OtherClueNode extends BaseNodeView {
 
     @Override
     public Node getNodeByPoint(float x, float y) {
+        if (rootNode != null && rootNode.getRegion().contains((int) x, (int) y)) {
+            return rootNode;
+        }
         if (nodeMap != null && !nodeMap.isEmpty()) {
             for (Node node : nodeMap.values()) {
                 if (node.getRegion().contains((int) x, (int) y)) {

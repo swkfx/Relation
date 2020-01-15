@@ -2,7 +2,6 @@ package com.jiatui.relation;
 
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -17,7 +16,6 @@ import android.graphics.Rect;
 import android.graphics.Region;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
-import android.view.Display;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -41,8 +39,6 @@ import java.util.List;
 import java.util.Map;
 
 import timber.log.Timber;
-
-import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
 
 public class NodeLayout extends ViewGroup {
@@ -658,7 +654,11 @@ public class NodeLayout extends ViewGroup {
                 upNode.setOriginPoint(new PointF(originPt[0], originPt[1]));
                 Node node = upNode.getNodeByPoint(point[0] - upNode.getLeft(), point[1] - upNode.getTop());
                 if (nodeClickListener != null && node != null) {
-                    nodeClickListener.onNodeClick(node);
+                    if (node.getNodeInfo().isRoot) {
+                        nodeClickListener.onRootNodeClick(node);
+                    } else {
+                        nodeClickListener.onNodeClick(node);
+                    }
                 }
                 return true;
             }
@@ -822,6 +822,8 @@ public class NodeLayout extends ViewGroup {
 
     public interface NodeClickListener {
         void onNodeClick(Node node);
+
+        void onRootNodeClick(Node node);
     }
 
     private float calculateAngle(float x, float y) {
