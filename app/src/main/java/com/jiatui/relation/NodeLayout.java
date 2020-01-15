@@ -63,7 +63,7 @@ public class NodeLayout extends ViewGroup {
     private int[] EXPAND_ANGLES_UP = new int[4];
     private int[] EXPAND_ANGLES_DOWN = new int[4];
     private ClueNode root;
-    private Map<String, PointZ> map = new HashMap<>();
+    // private Map<String, PointZ> map = new HashMap<>();
 
     private ClueNode search;
     // private Region searchRegion;
@@ -399,7 +399,8 @@ public class NodeLayout extends ViewGroup {
             parentNode.setEndPoint(point);
             final OtherClueNode nextNode = new OtherClueNode(getContext());
 //                nextNode.setVisibility(INVISIBLE);
-            nextNode.setViewId(id++);
+            final int viewId = id++;
+            nextNode.setViewId(viewId);
             float expandX = parentNode.getCenterPoint().x + parentNode.getParentRect().left;
             float expandY = parentNode.getCenterPoint().y + parentNode.getParentRect().top;
             nextNode.setExpandPoint(new PointF(expandX, expandY));
@@ -413,6 +414,39 @@ public class NodeLayout extends ViewGroup {
             nextNode.setNodeInfo(info);
             expandNodes.add(nextNode);
             regions.add(parentRegion);
+
+
+            //求出屏幕中心坐标
+            float cX = (-getTransX() + getWidth() / 2f) / getScale();
+            float cY = (-getTransY() + getHeight() / 2f) / getScale();
+            //算出目标点到中心点的差值
+            final float transX = (point.x - cX) * getScale();
+            final float transY = (point.y - cY) * getScale();
+
+            getTransAnim().removeAllUpdateListeners();
+            getTransAnim().addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                float upValue = 0;
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    float progress = (float) animation.getAnimatedValue();
+                    transMap.put(String.valueOf(viewId), progress);
+                    float dValue = progress - upValue;
+                    float dx = transX * dValue;
+                    float dy = transY * dValue;
+                    matrix.postTranslate(-dx, -dy);
+                    Timber.d("matrix[%s]", matrix.toString());
+
+                    upValue = progress;
+                    invalidate();
+                }
+            });
+            getTransAnim().start();
+            final float fromXDelta = point.x - expandX;
+            final float fromYDelta = point.y - expandY;
+            nextNode.transformAnimation(500, -fromXDelta, -fromYDelta);
+
+
         }
     }
 
@@ -474,49 +508,55 @@ public class NodeLayout extends ViewGroup {
                 float startY = expandPoint.y;
                 float endX = parentPoint.x;
                 float endY = parentPoint.y;
-                PointZ pointZ = map.get(node.getViewId() + "");
-                float distanceX = endX - startX;
-                float distanceY = endY - startY;
-                if (pointZ == null || pointZ.count == 0) {
-                    pointZ = new PointZ();
-                    pointZ.originX = startX + distanceX / DRAW_COUNT;
-                    pointZ.originY = startY + distanceY / DRAW_COUNT;
-                    map.put(node.getViewId() + "", pointZ);
+                float transX = endX - startX;
+                float transY = endY - startY;
+                Float progress = transMap.get(node.getViewId() + "");
+                if (progress == null) {
+                    progress = 0f;
                 }
-                if (pointZ.count < DRAW_COUNT) {
-                    if (pointZ.count == 0) {
-                        int childIndex = getClickChildIndex(endX, endY);
-                        if (childIndex > -1) {
-                            BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
-                            upNode.transformAnimation((long) ((DRAW_COUNT + 10) * 16), -distanceX, -distanceY);
-                        }
-                    }
-                    //每一帧做line绘制
-                    drawConnectLine(canvas, startX, startY, pointZ.originX, pointZ.originY, isSearch);
-                    pointZ.count++;
-                    pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
-                    pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
-                    map.put(node.getViewId() + "", pointZ);
-                    //第一帧的时候，同步做view的平移动画
+                drawConnectLine(canvas, startX, startY, startX + transX * progress, startY + transY * progress, isSearch);
 
-                    //每一帧做window的martix相对平移动画
-                    int childIndex = getClickChildIndex(startX, startY);
-                    if (childIndex > -1) {
-                        BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
 
-                        Display display = ((Activity) getContext()).getWindowManager().getDefaultDisplay();
-                        PointF op = upNode.getOriginPoint();
-                        float winX = display.getWidth() / 2f;
-                        float winY = display.getHeight() / 2f;
-                        float finalX = winX - op.x;
-                        float finalY = winY - op.y;
-                        // Timber.d("final: opdata " + op.x + ' ' + op.y);
-                        // Timber.d("final: " + finalX + ' ' + finalY);
-                        matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
-                    }
-                } else {
-                    drawConnectLine(canvas, startX, startY, parentPoint.x, parentPoint.y, isSearch);
-                }
+                // matrix.postTranslate(-transX * progress, -transY * progress);
+                // matrix.postTranslate(, )
+                // if (progress < 1f) {
+                // } else {
+                //     drawConnectLine(canvas, startX, startY, parentPoint.x, parentPoint.y, isSearch);
+                // }
+                // if (pointZ.count < DRAW_COUNT) {
+                //     if (pointZ.count == 0) {
+                //         int childIndex = getClickChildIndex(endX, endY);
+                //         if (childIndex > -1) {
+                //             BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
+                //             upNode.transformAnimation((long) ((DRAW_COUNT + 10) * 16), -distanceX, -distanceY);
+                //         }
+                //     }
+                //     //每一帧做line绘制
+                //
+                //     pointZ.count++;
+                //     pointZ.originX = startX + distanceX / DRAW_COUNT * pointZ.count;
+                //     pointZ.originY = startY + distanceY / DRAW_COUNT * pointZ.count;
+                //     map.put(node.getViewId() + "", pointZ);
+                //     //第一帧的时候，同步做view的平移动画
+                //
+                //     //每一帧做window的martix相对平移动画
+                //     int childIndex = getClickChildIndex(startX, startY);
+                //     if (childIndex > -1) {
+                //         BaseNodeView upNode = (BaseNodeView) getChildAt(childIndex);
+                //
+                //         Display display = ((Activity) getContext()).getWindowManager().getDefaultDisplay();
+                //         PointF op = upNode.getOriginPoint();
+                //         float winX = display.getWidth() / 2f;
+                //         float winY = display.getHeight() / 2f;
+                //         float finalX = winX - op.x;
+                //         float finalY = winY - op.y;
+                //         // Timber.d("final: opdata " + op.x + ' ' + op.y);
+                //         // Timber.d("final: " + finalX + ' ' + finalY);
+                //         matrix.postTranslate(-((distanceX - finalX) * getScale()) / DRAW_COUNT, -((distanceY - finalY) * getScale()) / DRAW_COUNT);
+                //     }
+                // } else {
+                //     drawConnectLine(canvas, startX, startY, parentPoint.x, parentPoint.y, isSearch);
+                // }
             }
         }
 
