@@ -288,9 +288,12 @@ public class NodeLayout extends ViewGroup {
             if (root == null) {
                 root = new ClueNode(getContext());
                 root.setNodeInfo(rootInfo, hasMore);
-                root.setViewId(id++);
+                int rootId = id++;
+                root.setViewId(rootId);
                 addView(root);
                 regions.add(new Region());//Root region
+                root.startExpandAnim();
+
 
                 search = new ClueNode(getContext());
                 search.setViewId(id++);
@@ -321,6 +324,7 @@ public class NodeLayout extends ViewGroup {
             search.setNodeInfo(searchNode, hasMore);
             expandNodes.add(search);
             invalidate();
+            startAnim(point, search, search.getViewId(), expandX, expandY);
         } else {
             search.setNodeInfo(searchNode, hasMore);
             moveCenterPoint(point);
@@ -338,7 +342,8 @@ public class NodeLayout extends ViewGroup {
         if (point != null) {
             parentNode.setEndPoint(point);
             final UsersNode nextNode = new UsersNode(getContext());
-            nextNode.setViewId(id++);
+            final int viewId = id++;
+            nextNode.setViewId(viewId);
             int expandX = (int) (parentNode.getCenterPoint().x + parentNode.getParentRect().left + .5f);
             int expandY = (int) (parentNode.getCenterPoint().y + parentNode.getParentRect().top + .5f);
             nextNode.setExpandPoint(new PointF(expandX, expandY));
@@ -355,6 +360,8 @@ public class NodeLayout extends ViewGroup {
             nextNode.setNodeInfo(info, parentNode.getColor(), childStartAngle);
             expandNodes.add(nextNode);
             regions.add(parentRegion);
+
+            startAnim(point, nextNode, viewId, expandX, expandY);
         }
     }
 
@@ -369,7 +376,8 @@ public class NodeLayout extends ViewGroup {
         if (point != null) {
             parentNode.setEndPoint(point);
             final ClueNode nextNode = new ClueNode(getContext());
-            nextNode.setViewId(id++);
+            final int viewId = id++;
+            nextNode.setViewId(viewId);
             float expandX = parentNode.getCenterPoint().x + parentNode.getParentRect().left;
             float expandY = parentNode.getCenterPoint().y + parentNode.getParentRect().top;
             nextNode.setExpandPoint(new PointF(expandX, expandY));
@@ -383,6 +391,8 @@ public class NodeLayout extends ViewGroup {
             nextNode.setNodeInfo(info, hasMore);
             expandNodes.add(nextNode);
             regions.add(parentRegion);
+
+            startAnim(point, nextNode, viewId, expandX, expandY);
         }
     }
 
@@ -415,39 +425,42 @@ public class NodeLayout extends ViewGroup {
             expandNodes.add(nextNode);
             regions.add(parentRegion);
 
-
-            //求出屏幕中心坐标
-            float cX = (-getTransX() + getWidth() / 2f) / getScale();
-            float cY = (-getTransY() + getHeight() / 2f) / getScale();
-            //算出目标点到中心点的差值
-            final float transX = (point.x - cX) * getScale();
-            final float transY = (point.y - cY) * getScale();
-
-            getTransAnim().removeAllUpdateListeners();
-            getTransAnim().addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                float upValue = 0;
-
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    float progress = (float) animation.getAnimatedValue();
-                    transMap.put(String.valueOf(viewId), progress);
-                    float dValue = progress - upValue;
-                    float dx = transX * dValue;
-                    float dy = transY * dValue;
-                    matrix.postTranslate(-dx, -dy);
-                    Timber.d("matrix[%s]", matrix.toString());
-
-                    upValue = progress;
-                    invalidate();
-                }
-            });
-            getTransAnim().start();
-            final float fromXDelta = point.x - expandX;
-            final float fromYDelta = point.y - expandY;
-            nextNode.transformAnimation(500, -fromXDelta, -fromYDelta);
+            startAnim(point, nextNode, viewId, expandX, expandY);
 
 
         }
+    }
+
+    private void startAnim(PointF point, BaseNodeView nextNode, final int viewId, float expandX, float expandY) {
+        //求出屏幕中心坐标
+        float cX = (-getTransX() + getWidth() / 2f) / getScale();
+        float cY = (-getTransY() + getHeight() / 2f) / getScale();
+        //算出目标点到中心点的差值
+        final float transX = (point.x - cX) * getScale();
+        final float transY = (point.y - cY) * getScale();
+
+        getTransAnim().removeAllUpdateListeners();
+        getTransAnim().addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            float upValue = 0;
+
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float progress = (float) animation.getAnimatedValue();
+                transMap.put(String.valueOf(viewId), progress);
+                float dValue = progress - upValue;
+                float dx = transX * dValue;
+                float dy = transY * dValue;
+                matrix.postTranslate(-dx, -dy);
+                Timber.d("matrix[%s]", matrix.toString());
+
+                upValue = progress;
+                invalidate();
+            }
+        });
+        getTransAnim().start();
+        final float fromXDelta = point.x - expandX;
+        final float fromYDelta = point.y - expandY;
+        nextNode.transformAnimation(NodeUtils.ANIM_DURATION, -fromXDelta, -fromYDelta);
     }
 
 
@@ -832,7 +845,7 @@ public class NodeLayout extends ViewGroup {
         if (transAnim == null) {
             transAnim = ObjectAnimator
                     .ofFloat(this, "transProgress", 0, 1f)
-                    .setDuration(500);
+                    .setDuration(NodeUtils.ANIM_DURATION);
         }
         return transAnim;
     }

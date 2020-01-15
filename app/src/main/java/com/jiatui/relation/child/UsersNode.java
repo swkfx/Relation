@@ -72,7 +72,7 @@ public class UsersNode extends BaseNodeView {
 
     private Map<String, Node> nodeMap;
 
-    private Map<String, Integer> map = new HashMap<>();
+    // private Map<String, Integer> map = new HashMap<>();
 
 
     public UsersNode(Context context) {
@@ -254,54 +254,28 @@ public class UsersNode extends BaseNodeView {
             int size = Math.min(29, info.childes.size());
             for (int i = 0; i < size; i++) {
                 NodeInfo child = info.childes.get(i);
+                Node node = nodeMap.get(child.getNodeId());
                 //绘制连接线
-                int count = Math.min(circleCount, info.childes.size());
-                float angle;
-                int multiple = i / circleCount + 1;
-                int position = i % count;
-                float offsetAngle = 360f / count / 2;//设计稿起始偏移角度
-                angle = startAngle + 360f / count * position + offsetAngle * multiple;
-                int radius;
-                if (i < circleCount) {
-                    if (info.childes.size() < circleCount) {
-                        radius = NodeUtils.dp2px(getContext(), lineDistance);
-                    } else {
-                        radius = NodeUtils.dp2px(getContext(), middleLineDistance);
-                    }
-                } else {
-                    radius = NodeUtils.dp2px(getContext(), longLineDistance);
-                }
-                Point point = NodeUtils.calcPointWithAngle(x, y, radius, angle);
+                PointF point = node.getCenterPoint();
                 linePath.reset();
                 linePath.moveTo(x, y);
+                float distanceX = (point.x - x);
+                float distanceY = (point.y - y);
 
-                float distanceX = (point.x - x) / DRAW_COUNT;
-                float distanceY = (point.y - y) / DRAW_COUNT;
-                String key = i + 1 + "";
-                Integer num = map.get(key);
-                if (num == null) {
-                    num = 0;
-                    map.put(key, num);
-                }
                 //获取目标坐标的{x,y}
-                float originX = x + distanceX * num;
-                float originY = y + distanceY * num;
+                float originX = x + distanceX * getTransProgress();
+                float originY = y + distanceY * getTransProgress();
 
                 linePath.lineTo(originX, originY);
                 canvas.drawPath(linePath, linePaint);
                 //绘制 node的 child
                 drawNodeChild(canvas, point, child, originX, originY);
 
-                if (num < DRAW_COUNT) {
-                    num++;
-                    map.put(key, num);
-                    invalidate();
-                }
             }
         }
     }
 
-    private void drawNodeChild(Canvas canvas, Point point, NodeInfo child, float originX, float originY) {
+    private void drawNodeChild(Canvas canvas, PointF point, NodeInfo child, float originX, float originY) {
         if (child != null) {
             Bitmap nodeBitmap = cacheBitmapMap.get(child.picUrl);
             if (nodeBitmap != null) {

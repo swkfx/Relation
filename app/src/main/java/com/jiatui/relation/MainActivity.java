@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
         Timber.plant(new Timber.DebugTree());
         setContentView(R.layout.activity_main);
         final NodeLayout node = findViewById(R.id.clue_node);
-        node.setRoot(mockRootNodeInfo(), true);
+        node.setRoot(mockRootNodeInfo(), false);
         // node.setNodeInfo(info, NodeUtils.generateChildColor(true), 66);
         // node.setHasOtherNode(true);
         node.setNodeClickListener(new NodeLayout.NodeClickListener() {
@@ -121,8 +121,7 @@ public class MainActivity extends AppCompatActivity {
         final NodeInfo info = new NodeInfo();
         info.name = getRandomName(2);
         info.userId = prefix + info.name.hashCode();
-        info.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625" +
-                ".png@1280w_1l_2o_100sh.png";
+        info.picUrl = "https://img.zcool.cn/community/015a465698b54432f87574be965625.png@1280w_1l_2o_100sh.png";
         info.childes = new ArrayList<>();
         for (int i = 0; i < 1; i++) {
             NodeInfo child = new NodeInfo();

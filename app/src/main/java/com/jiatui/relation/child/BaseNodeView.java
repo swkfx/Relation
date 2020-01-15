@@ -3,6 +3,8 @@ package com.jiatui.relation.child;
 import android.content.Context;
 import android.graphics.PointF;
 import android.graphics.Region;
+import android.support.v4.view.ViewCompat;
+import android.support.v4.view.ViewPropertyAnimatorUpdateListener;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.Animation;
@@ -24,6 +26,8 @@ public abstract class BaseNodeView extends View {
     protected PointF expandPoint;//在父容器的连线起点
     protected PointF parentPoint;//在父容器的layout 的中心店
     protected PointF originPoint;//原始点
+
+    protected float transProgress;
 
 
     public BaseNodeView(Context context) {
@@ -121,14 +125,38 @@ public abstract class BaseNodeView extends View {
         return angle;
     }
 
-    public void transformAnimation(long duration, float fromXDelta, float fromYDelta) {
+    public void transformAnimation(long duration, final float fromXDelta, float fromYDelta) {
+        // Animation translateAnimation = new TranslateAnimation(fromXDelta, 0, fromYDelta, 0);//设置平移的起点和终点
+        // translateAnimation.setDuration(duration);//动画持续的时间为10s
+        // translateAnimation.setFillEnabled(true);//使其可以填充效果从而不回到原地
+        // translateAnimation.setFillAfter(true);//不回到起始位置
+        // // translateAnimation.setInterpolator(new DecelerateInterpolator(0.6F));
+        // setAnimation(translateAnimation);//给imageView添加的动画效果
+        // translateAnimation.startNow();//动画开始执行 放在最后即可
         clearAnimation();
-        Animation translateAnimation = new TranslateAnimation(fromXDelta, 0,fromYDelta, 0);//设置平移的起点和终点
-        translateAnimation.setDuration(duration);//动画持续的时间为10s
-        translateAnimation.setFillEnabled(true);//使其可以填充效果从而不回到原地
-        translateAnimation.setFillAfter(true);//不回到起始位置
-        // translateAnimation.setInterpolator(new DecelerateInterpolator(0.6F));
-        setAnimation(translateAnimation);//给imageView添加的动画效果
-        translateAnimation.startNow();//动画开始执行 放在最后即可
+        setTranslationX(fromXDelta);
+        setTranslationY(fromYDelta);
+        ViewCompat.animate(this)
+                .setDuration(duration)
+                .translationX(0)
+                .translationY(0)
+                .setUpdateListener(new ViewPropertyAnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(View view) {
+                        float translationX = view.getTranslationX();
+                        float value = translationX / fromXDelta;
+                        setTransProgress(1 - value);
+                        Timber.d("getTransProgress[%s]", getTransProgress());
+                    }
+                }).start();
+    }
+
+    public float getTransProgress() {
+        return transProgress;
+    }
+
+    public void setTransProgress(float transProgress) {
+        this.transProgress = transProgress;
+        invalidate();
     }
 }

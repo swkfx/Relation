@@ -23,7 +23,6 @@ import java.util.Map;
 
 import timber.log.Timber;
 
-import static com.jiatui.relation.util.Constants.DRAW_COUNT;
 
 /**
  * <pre>
@@ -50,7 +49,7 @@ public class OtherClueNode extends BaseNodeView {
     // private List<Node> nodes;
     private Map<String, Node> nodeMap;
 
-    private Map<String, Integer> map = new HashMap<>();
+    // private Map<String, Integer> map = new HashMap<>();
 
     public OtherClueNode(Context context) {
         this(context, null);
@@ -185,46 +184,21 @@ public class OtherClueNode extends BaseNodeView {
             int size = Math.min(13, info.childes.size());
             for (int i = 0; i < size; i++) {
                 NodeInfo child = info.childes.get(i);
+                Node node = nodeMap.get(child.getNodeId());
                 //绘制连接线
-                int count = Math.min(6, info.childes.size());
-                float angle;
-                int multiple = i / 6 + 1;
-                int position = i % 6;
-                float offsetAngle = multiple > 2 ? 45 : 360f / count / 2 * multiple;//设计稿起始偏移角度//1圈-30 2圈-60 3圈-45
-                angle = 360f / count * position + offsetAngle;
-                int radius;
-                if (multiple == 1) {
-                    radius = NodeUtils.dp2px(getContext(), 90);
-                } else if (multiple == 2) {
-                    radius = NodeUtils.dp2px(getContext(), 140);
-                } else {
-                    radius = NodeUtils.dp2px(getContext(), 180);
-                }
-                Point point = NodeUtils.calcPointWithAngle(x, y, radius, angle);
+                PointF point = node.getCenterPoint();
                 linePath.reset();
                 linePath.moveTo(x, y);
-
-                float distanceX = (point.x - x) / DRAW_COUNT;
-                float distanceY = (point.y - y) / DRAW_COUNT;
-                String key = i + 1 + "";
-                Integer num = map.get(key);
-                if (num == null) {
-                    num = 0;
-                    map.put(key, num);
-                }
+                float distanceX = (point.x - x);
+                float distanceY = (point.y - y);
                 //获取目标坐标的{x,y}
-                float originX = x + distanceX * num;
-                float originY = y + distanceY * num;
+                float originX = x + distanceX * getTransProgress();
+                float originY = y + distanceY * getTransProgress();
                 linePath.lineTo(originX, originY);
                 canvas.drawPath(linePath, linePaint);
-                int color = nodeMap.get(child.getNodeId()).getColor();
+                int color = node.getColor();
+                //绘制子节点
                 drawNodeChild(canvas, child, color, originX, originY);
-
-                if (num < DRAW_COUNT) {
-                    num++;
-                    map.put(key, num);
-                    invalidate();
-                }
             }
         }
     }

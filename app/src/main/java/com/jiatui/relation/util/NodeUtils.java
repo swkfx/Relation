@@ -18,6 +18,8 @@ import java.util.Random;
  * </pre>
  */
 public class NodeUtils {
+    public static final long ANIM_DURATION = 1000;
+
     private static List<Integer> defaultColors = new ArrayList<>();
     private static List<Integer> colors;
 
